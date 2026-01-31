@@ -41,7 +41,7 @@ export class GeminiService {
             const text = response.text();
 
             // Basic cleanup to ensure JSON
-            const jsonStr = text.replace(/```json / g, "").replace(/```/g, "").trim();
+            const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
             return JSON.parse(jsonStr);
         } catch (error) {
             console.error("Gemini analysis failed:", error);

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
         // Get Active Monitored Posts
         const { data: monitoredPosts } = await supabase
             .from('monitored_posts')
-            .select('post_id')
+            .select('post_id, id')
             .eq('is_active', true);
 
         if (!monitoredPosts || monitoredPosts.length === 0) {
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 
                     // Create Agent Task log
                     await supabase.from('agent_tasks').insert({
-                        monitored_post_id: monitoredPosts.find(p => p.post_id === comment.post_id)?.id, // Not perfect mapping if multiple monitoring
+                        monitored_post_id: monitoredPosts.find(p => p.post_id === comment.post_id)?.post_id, // Not perfect mapping if multiple monitoring
                         task_type: 'analyze',
                         status: 'completed',
                         result: analysis
