@@ -23,8 +23,10 @@ export default async function LoginPage({
 
         const headersList = headers();
         const host = headersList.get("host");
-        const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
-        const origin = `${protocol}://${host}`;
+        const protocol = headersList.get("x-forwarded-proto") || "https";
+        // On localhost, we might not have x-forwarded-proto, so fallback to http if host contains localhost
+        const isLocal = host?.includes("localhost") || host?.includes("127.0.0.1");
+        const origin = isLocal ? `http://${host}` : `https://${host}`;
 
         const supabase = createClient();
         const { data, error } = await supabase.auth.signInWithOAuth({
