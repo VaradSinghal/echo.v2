@@ -84,7 +84,10 @@ export class GeminiService {
 
             const result = await model.generateContent(prompt);
             const text = result.response.text();
-            return JSON.parse(text.replace(/```json/g, "").replace(/```/g, "").trim());
+            console.log("🤖 Gemini Raw Response:", text);
+
+            const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            return JSON.parse(cleanJson);
         } catch (error: any) {
             if (error?.status === 429) manager.markRateLimited(apiKey);
             console.error("Gemini analysis failed:", error);
@@ -115,7 +118,8 @@ export class GeminiService {
             const prompt = `Extract top 5 themes from: ${comments.join(", ")}. Return JSON array of strings.`;
             const result = await model.generateContent(prompt);
             const text = result.response.text();
-            return JSON.parse(text.replace(/```json/g, "").replace(/```/g, "").trim());
+            const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            return JSON.parse(cleanJson);
         } catch (error) {
             console.error("Gemini topics failed:", error);
             return [];
@@ -130,7 +134,8 @@ export class GeminiService {
             const prompt = `Update ${filePath} for feedback: ${feedback}. Current code:\n${currentCode}\nReturn JSON with {new_code, explanation, confidence_score}.`;
             const result = await model.generateContent(prompt);
             const text = result.response.text();
-            return JSON.parse(text.replace(/```json/g, "").replace(/```/g, "").trim());
+            const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            return JSON.parse(cleanJson);
         } catch (error) {
             console.error("Gemini code gen failed:", error);
             return null;

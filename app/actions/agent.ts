@@ -56,7 +56,7 @@ export async function createPullRequestAction(taskId: string) {
     }
 }
 
-export async function semanticSearch(query: string, threshold: number = 0.7) {
+export async function semanticSearch(query: string, repoId: string = "all", threshold: number = 0.7) {
     const supabase = createClient();
 
     // 1. Generate embedding for the query
@@ -71,7 +71,14 @@ export async function semanticSearch(query: string, threshold: number = 0.7) {
     });
 
     if (error) return { error: error.message };
-    return { data };
+
+    // Filter results if repoId is not "all"
+    let results = data || [];
+    if (repoId !== "all") {
+        results = results.filter((r: any) => r.repo_link === repoId);
+    }
+
+    return { data: results };
 }
 
 export async function getTopicsForPost(postId: string) {

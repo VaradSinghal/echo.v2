@@ -5,28 +5,43 @@ import { createClient } from "@/utils/supabase/client"
 import { formatDistanceToNow } from "date-fns"
 import { Activity } from "lucide-react"
 
-export function ActivityFeed() {
+export function ActivityFeed({ selectedRepo }: { selectedRepo: string }) {
     const [tasks, setTasks] = React.useState<any[]>([])
     const supabase = createClient()
 
-    React.useEffect(() => {
-        // Initial fetch
-        supabase.from('agent_tasks').select('*').order('created_at', { ascending: false }).limit(10)
-            .then(({ data }) => {
-                if (data) setTasks(data)
-            })
+    const fetchTasks = React.useCallback(async () => {
+        let query = supabase
+            .from('agent_tasks')
+            .select(`
+                *,
+                monitored_posts!inner (repo_id)
+            `)
 
-        // Realtime
+        if (selectedRepo !== "all") {
+            query = query.filter('monitored_posts.repo_id', 'eq', selectedRepo)
+        }
+
+        const { data } = await query.order('created_at', { ascending: false }).limit(10)
+        if (data) setTasks(data)
+    }, [supabase, selectedRepo])
+
+    React.useEffect(() => {
+        fetchTasks()
+
         const channel = supabase.channel('agent-activity')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agent_tasks' }, (payload) => {
-                setTasks(prev => [payload.new, ...prev].slice(0, 10))
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'agent_tasks'
+            }, () => {
+                fetchTasks()
             })
             .subscribe()
 
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [supabase])
+    }, [supabase, fetchTasks])
 
     return (
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">

@@ -18,6 +18,10 @@ const config = {
             },
         },
         extend: {
+            fontFamily: {
+                sans: ["var(--font-sans)", "ui-sans-serif", "system-ui"],
+                display: ["var(--font-display)", "ui-sans-serif", "system-ui"],
+            },
             colors: {
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",
@@ -52,6 +56,10 @@ const config = {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
+            },
+            boxShadow: {
+                brutalist: "4px 4px 0px 0px rgba(0,0,0,1)",
+                "brutalist-large": "8px 8px 0px 0px rgba(0,0,0,1)",
             },
             borderRadius: {
                 lg: "var(--radius)",

@@ -4,7 +4,7 @@ import * as React from "react"
 import { Search, Loader2, Link2, Download } from "lucide-react"
 import { semanticSearch } from "@/app/actions/agent"
 
-export function SemanticSearch() {
+export function SemanticSearch({ selectedRepo }: { selectedRepo: string }) {
     const [query, setQuery] = React.useState("")
     const [results, setResults] = React.useState<any[]>([])
     const [loading, setLoading] = React.useState(false)
@@ -14,7 +14,7 @@ export function SemanticSearch() {
         if (!query.trim()) return
 
         setLoading(true)
-        const { data, error } = await semanticSearch(query)
+        const { data, error } = await semanticSearch(query, selectedRepo)
         if (data) setResults(data)
         setLoading(false)
     }

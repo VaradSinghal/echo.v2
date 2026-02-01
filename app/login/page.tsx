@@ -14,7 +14,7 @@ export default async function LoginPage({
     } = await supabase.auth.getSession();
 
     if (session) {
-        return redirect("/dashboard");
+        return redirect("/dashboard/feed");
     }
 
     const signIn = async () => {

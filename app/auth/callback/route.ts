@@ -14,19 +14,23 @@ export async function GET(request: Request) {
             const { user } = session
 
             // Sync Profile Data
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .upsert({
-                    id: user.id,
-                    email: user.email,
-                    username: user.user_metadata.user_name || user.user_metadata.full_name,
-                    avatar_url: user.user_metadata.avatar_url,
-                    github_id: user.user_metadata.provider_id,
-                    updated_at: new Date().toISOString(),
-                }, { onConflict: 'id' })
+            try {
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .upsert({
+                        id: user.id,
+                        email: user.email,
+                        username: user.user_metadata.user_name || user.user_metadata.full_name || user.email?.split('@')[0],
+                        avatar_url: user.user_metadata.avatar_url,
+                        github_id: user.user_metadata.provider_id,
+                        updated_at: new Date().toISOString(),
+                    }, { onConflict: 'id' })
 
-            if (profileError) {
-                console.error('Error syncing profile:', profileError)
+                if (profileError) {
+                    console.error('Error syncing profile:', profileError)
+                }
+            } catch (e) {
+                console.error('Unexpected error during profile sync:', e)
             }
 
             // Store GitHub tokens

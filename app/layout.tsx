@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-display" });
 
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
 export const metadata: Metadata = {
-  title: "Echo Agent - Community-Driven Code Automation",
-  description: "Transform GitHub community feedback into actionable pull requests using Gemini AI and pgVector.",
-  keywords: ["GitHub", "AI", "Agent", "Supabase", "Gemini", "Automation", "Open Source"],
+  title: "Echo | Social Feedback, Automated PRs",
+  description: "The AI-powered social platform for developers. Turn community insights into code.",
 };
 
 export default function RootLayout({
@@ -22,8 +22,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
-          "min-h-screen bg-background font-sans antialiased",
-          inter.className
+          "min-h-screen bg-background text-foreground font-display antialiased selection:bg-black selection:text-white",
+          inter.variable,
+          plusJakarta.variable
         )}
       >
         <ThemeProvider

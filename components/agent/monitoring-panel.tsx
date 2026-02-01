@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/client"
 import { Switch } from "@/components/ui/switch"
 import { Loader2 } from "lucide-react"
 
-export function MonitoringPanel() {
+export function MonitoringPanel({ selectedRepo }: { selectedRepo: string }) {
     const [monitoredPosts, setMonitoredPosts] = React.useState<any[]>([])
     const [loading, setLoading] = React.useState(true)
     const supabase = createClient()
@@ -47,7 +47,10 @@ export function MonitoringPanel() {
                 ) : (
                     <div className="space-y-4">
                         {monitoredPosts.map((item) => (
-                            <div key={item.id} className="flex items-center justify-between border-b pb-4 last:border-0">
+                            <div
+                                key={item.id}
+                                className={`flex items-center justify-between border-b pb-4 last:border-0 p-2 rounded-md transition-colors ${selectedRepo === item.repo_id ? 'bg-primary/5 border-primary/20' : ''}`}
+                            >
                                 <div>
                                     <p className="font-medium">{item.repo_id || "Unknown Repo"}</p>
                                     <p className="text-sm text-muted-foreground">Linked Post: {item.posts?.title}</p>

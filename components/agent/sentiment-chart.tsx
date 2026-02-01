@@ -4,22 +4,34 @@ import * as React from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
 
-export function SentimentChart() {
+export function SentimentChart({ selectedRepo }: { selectedRepo: string }) {
     const [data, setData] = React.useState<any[]>([])
     const supabase = createClient()
 
     React.useEffect(() => {
         const fetchData = async () => {
-            const { data: analysis } = await supabase
+            let query = supabase
                 .from('feedback_analysis')
-                .select('sentiment_score, category, analyzed_at')
+                .select(`
+                    sentiment_score, 
+                    category, 
+                    analyzed_at,
+                    comments!inner (
+                        post_id,
+                        posts!inner (repo_link)
+                    )
+                `)
+
+            if (selectedRepo !== "all") {
+                query = query.eq('comments.posts.repo_link', selectedRepo)
+            }
+
+            const { data: analysis } = await query
                 .order('analyzed_at', { ascending: true })
                 .limit(50)
 
             if (analysis) {
-                // Group by category or just show trend
-                // For simplicity, let's show sentiment score trend
-                const formatted = analysis.map((item, index) => ({
+                const formatted = analysis.map((item: any, index: number) => ({
                     id: index,
                     sentiment: item.sentiment_score,
                     category: item.category,
@@ -29,7 +41,7 @@ export function SentimentChart() {
             }
         }
         fetchData()
-    }, [])
+    }, [supabase, selectedRepo])
 
     return (
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm h-[300px] flex flex-col">

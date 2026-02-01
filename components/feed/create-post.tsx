@@ -3,7 +3,7 @@
 import * as React from "react"
 import { createClient } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
-import { Github, Loader2 } from "lucide-react"
+import { Loader2, Github, Send } from "lucide-react"
 
 interface Repo {
     id: number
@@ -17,6 +17,7 @@ export function CreatePost() {
     const [repos, setRepos] = React.useState<Repo[]>([])
     const [selectedRepo, setSelectedRepo] = React.useState<string>("")
     const [isLoading, setIsLoading] = React.useState(false)
+    const [error, setError] = React.useState<string | null>(null)
     const router = useRouter()
     const supabase = createClient()
 
@@ -34,75 +35,93 @@ export function CreatePost() {
         if (!title || !content) return
 
         setIsLoading(true)
+        setError(null)
         const { data: { user } } = await supabase.auth.getUser()
 
         if (user) {
-            const { error } = await supabase.from('posts').insert({
+            const { error: insertError } = await supabase.from('posts').insert({
                 user_id: user.id,
                 title,
                 content,
                 repo_link: selectedRepo || null,
             })
 
-            if (!error) {
+            if (!insertError) {
                 setTitle("")
                 setContent("")
                 setSelectedRepo("")
                 router.refresh()
             } else {
-                console.error("Error creating post:", error)
+                setError(insertError.message || "Failed to create post.")
             }
+        } else {
+            setError("You must be logged in to post.")
         }
         setIsLoading(false)
     }
 
     return (
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 mb-8">
-            <h3 className="text-lg font-semibold mb-4">Create a New Post</h3>
+        <div className="border-2 border-black bg-white p-6 shadow-brutalist">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                <span className="size-2 bg-black" />
+                New Signal
+            </h3>
+
+            {error && (
+                <div className="mb-6 border border-black bg-red-50 p-3 text-[10px] font-bold uppercase tracking-tight text-red-600">
+                    ERR: {error}
+                </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <input
-                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="Post Title"
+                        className="w-full border-2 border-black bg-white px-3 py-2 text-xs font-bold uppercase tracking-tight placeholder:text-black/20 focus:outline-none focus:bg-neutral-50"
+                        placeholder="OBJECTIVE TITLE..."
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         disabled={isLoading}
                     />
                 </div>
+
                 <div>
                     <textarea
-                        className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="Write with Markdown..."
+                        className="w-full min-h-[100px] border-2 border-black bg-white px-3 py-2 text-xs font-medium placeholder:text-black/20 focus:outline-none focus:bg-neutral-50 resize-none"
+                        placeholder="TECHNICAL CONTEXT (MARKDOWN)..."
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         disabled={isLoading}
                     />
                 </div>
+
                 <div>
                     <select
-                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
+                        className="w-full border-2 border-black bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-tight focus:outline-none focus:bg-neutral-50 appearance-none rounded-none"
                         value={selectedRepo}
                         onChange={(e) => setSelectedRepo(e.target.value)}
                         disabled={isLoading}
                     >
-                        <option value="">Link a GitHub Repository (Optional)</option>
+                        <option value="">ATTACH REPOSITORY (OPTIONAL)</option>
                         {repos.map(repo => (
                             <option key={repo.id} value={repo.html_url}>
-                                {repo.full_name}
+                                {repo.full_name.toUpperCase()}
                             </option>
                         ))}
                     </select>
                 </div>
-                <div className="flex justify-end">
-                    <button
-                        type="submit"
-                        disabled={isLoading || !title || !content}
-                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-                    >
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Post Update
-                    </button>
-                </div>
+
+                <button
+                    type="submit"
+                    disabled={isLoading || !title || !content}
+                    className="w-full bg-black text-white py-3 text-[10px] font-black uppercase tracking-[0.3em] transition-all hover:bg-neutral-800 flex items-center justify-center gap-2 disabled:opacity-30"
+                >
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                        <>
+                            <Send className="h-3 w-3" />
+                            BROADCAST
+                        </>
+                    )}
+                </button>
             </form>
         </div>
     )

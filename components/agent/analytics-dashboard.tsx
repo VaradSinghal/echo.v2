@@ -5,21 +5,60 @@ import { createClient } from "@/utils/supabase/client"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts"
 import { Activity, MessageSquare, GitPullRequest, TrendingUp, AlertCircle } from "lucide-react"
 
-export function AnalyticsDashboard() {
+export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
     const [stats, setStats] = React.useState<any>(null)
     const [loading, setLoading] = React.useState(true)
     const supabase = createClient()
 
     React.useEffect(() => {
         const fetchStats = async () => {
-            // Fetch various metrics
-            const { count: commentCount } = await supabase.from('comments').select('*', { count: 'exact', head: true })
-            const { count: analysisCount } = await supabase.from('feedback_analysis').select('*', { count: 'exact', head: true })
-            const { count: taskCount } = await supabase.from('agent_tasks').select('*', { count: 'exact', head: true })
-            const { count: prCount } = await supabase.from('github_prs').select('*', { count: 'exact', head: true })
+            setLoading(true)
 
-            // Category breakdown
-            const { data: categories } = await supabase.from('feedback_analysis').select('category')
+            // Build filters
+            let commentQuery = supabase.from('comments').select('*', { count: 'exact', head: true })
+            let analysisQuery = supabase.from('feedback_analysis').select('category')
+            let taskQuery = supabase.from('agent_tasks').select('*', { count: 'exact', head: true })
+            let prQuery = supabase.from('github_prs').select('*', { count: 'exact', head: true })
+
+            if (selectedRepo !== "all") {
+                // To filter comments by repo, we need to join with posts
+                // Note: supabase-js count head doesn't support complex joins easily, 
+                // so we might need to fetch IDs or use a view. 
+                // For now, let's filter related tables.
+
+                const { data: repoPosts } = await supabase.from('posts').select('id').eq('repo_link', selectedRepo)
+                const postIds = (repoPosts || []).map(p => p.id)
+
+                if (postIds.length > 0) {
+                    commentQuery = commentQuery.in('post_id', postIds)
+
+                    // For analysis, we join comments -> feedback_analysis
+                    // Actually feedback_analysis has comment_id
+                    const { data: repoComments } = await supabase.from('comments').select('id').in('post_id', postIds)
+                    const commentIds = (repoComments || []).map(c => c.id)
+
+                    if (commentIds.length > 0) {
+                        analysisQuery = analysisQuery.in('comment_id', commentIds)
+                    } else {
+                        analysisQuery = analysisQuery.eq('id', '00000000-0000-0000-0000-000000000000') // Force empty
+                    }
+
+                    // For tasks, monitored_posts has repo_id
+                    taskQuery = taskQuery.filter('monitored_posts.repo_id', 'eq', selectedRepo)
+                    // prQuery = prQuery.filter('repo_name', 'eq', selectedRepo) // adjust as per schema
+                } else {
+                    // Reset all if no posts found
+                    setStats({ totalComments: 0, analyzed: 0, tasksRun: 0, prsOpened: 0, categories: [] })
+                    setLoading(false)
+                    return
+                }
+            }
+
+            const { count: commentCount } = await commentQuery
+            const { data: categories } = await analysisQuery
+            const { count: taskCount } = await taskQuery
+            const { count: prCount } = await prQuery
+
             const catMap = (categories || []).reduce((acc: any, curr: any) => {
                 acc[curr.category] = (acc[curr.category] || 0) + 1
                 return acc
@@ -29,7 +68,7 @@ export function AnalyticsDashboard() {
 
             setStats({
                 totalComments: commentCount || 0,
-                analyzed: analysisCount || 0,
+                analyzed: categories?.length || 0,
                 tasksRun: taskCount || 0,
                 prsOpened: prCount || 0,
                 categories: chartData
@@ -38,7 +77,7 @@ export function AnalyticsDashboard() {
         }
 
         fetchStats()
-    }, [supabase])
+    }, [supabase, selectedRepo])
 
     if (loading) return null
 
