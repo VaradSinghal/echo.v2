@@ -2,139 +2,163 @@
 
 import * as React from "react"
 import { createClient } from "@/utils/supabase/client"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts"
-import { Activity, MessageSquare, GitPullRequest, TrendingUp, AlertCircle } from "lucide-react"
+import { MessageSquare, GitPullRequest, AlertCircle, Loader2, CheckCircle, Zap } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
     const [stats, setStats] = React.useState<any>(null)
+    const [tasks, setTasks] = React.useState<any[]>([])
     const [loading, setLoading] = React.useState(true)
     const supabase = createClient()
 
     React.useEffect(() => {
-        const fetchStats = async () => {
+        const fetchData = async () => {
+            if (!selectedRepo) return
             setLoading(true)
 
-            // Build filters
-            let commentQuery = supabase.from('comments').select('*', { count: 'exact', head: true })
-            let analysisQuery = supabase.from('feedback_analysis').select('category')
-            let taskQuery = supabase.from('agent_tasks').select('*', { count: 'exact', head: true })
-            let prQuery = supabase.from('github_prs').select('*', { count: 'exact', head: true })
+            // 1. Get Repo Posts
+            const { data: repoPosts } = await supabase.from('posts').select('id').eq('repo_link', selectedRepo)
+            const postIds = (repoPosts || []).map(p => p.id)
 
-            if (selectedRepo !== "all") {
-                // To filter comments by repo, we need to join with posts
-                // Note: supabase-js count head doesn't support complex joins easily, 
-                // so we might need to fetch IDs or use a view. 
-                // For now, let's filter related tables.
-
-                const { data: repoPosts } = await supabase.from('posts').select('id').eq('repo_link', selectedRepo)
-                const postIds = (repoPosts || []).map(p => p.id)
-
-                if (postIds.length > 0) {
-                    commentQuery = commentQuery.in('post_id', postIds)
-
-                    // For analysis, we join comments -> feedback_analysis
-                    // Actually feedback_analysis has comment_id
-                    const { data: repoComments } = await supabase.from('comments').select('id').in('post_id', postIds)
-                    const commentIds = (repoComments || []).map(c => c.id)
-
-                    if (commentIds.length > 0) {
-                        analysisQuery = analysisQuery.in('comment_id', commentIds)
-                    } else {
-                        analysisQuery = analysisQuery.eq('id', '00000000-0000-0000-0000-000000000000') // Force empty
-                    }
-
-                    // For tasks, monitored_posts has repo_id
-                    taskQuery = taskQuery.filter('monitored_posts.repo_id', 'eq', selectedRepo)
-                    // prQuery = prQuery.filter('repo_name', 'eq', selectedRepo) // adjust as per schema
-                } else {
-                    // Reset all if no posts found
-                    setStats({ totalComments: 0, analyzed: 0, tasksRun: 0, prsOpened: 0, categories: [] })
-                    setLoading(false)
-                    return
-                }
+            if (postIds.length === 0) {
+                setStats({ totalComments: 0, prsOpened: 0, issuesOpened: 0 })
+                setTasks([])
+                setLoading(false)
+                return
             }
 
-            const { count: commentCount } = await commentQuery
-            const { data: categories } = await analysisQuery
-            const { count: taskCount } = await taskQuery
-            const { count: prCount } = await prQuery
+            // 2. Counts
+            const { count: commentCount } = await supabase.from('comments').select('*', { count: 'exact', head: true }).in('post_id', postIds)
 
-            const catMap = (categories || []).reduce((acc: any, curr: any) => {
-                acc[curr.category] = (acc[curr.category] || 0) + 1
-                return acc
-            }, {})
+            // Issues (mapped to feature requests and bugs)
+            const { data: repoComments } = await supabase.from('comments').select('id').in('post_id', postIds)
+            const commentIds = (repoComments || []).map(c => c.id)
+            const { count: issueCount } = await supabase.from('feedback_analysis')
+                .select('*', { count: 'exact', head: true })
+                .in('comment_id', commentIds)
+                .in('category', ['feature_request', 'bug'])
 
-            const chartData = Object.entries(catMap).map(([name, value]) => ({ name, value }))
+            // PRs
+            const { count: prCount } = await supabase.from('github_prs').select('*', { count: 'exact', head: true }) // Adjust if github_prs has repo_id
+
+            // 3. Agent Stage (Tasks)
+            const { data: activeTasks } = await supabase
+                .from('agent_tasks')
+                .select(`
+                    id, 
+                    task_type, 
+                    status, 
+                    monitored_posts!inner (repo_id)
+                `)
+                .eq('monitored_posts.repo_id', selectedRepo)
+                .order('created_at', { ascending: false })
+                .limit(5)
 
             setStats({
                 totalComments: commentCount || 0,
-                analyzed: categories?.length || 0,
-                tasksRun: taskCount || 0,
                 prsOpened: prCount || 0,
-                categories: chartData
+                issuesOpened: issueCount || 0
             })
+            setTasks(activeTasks || [])
             setLoading(false)
         }
 
-        fetchStats()
+        fetchData()
+
+        // Polling or Realtime would be better here for "Working Stage"
+        const interval = setInterval(fetchData, 10000)
+        return () => clearInterval(interval)
     }, [supabase, selectedRepo])
 
-    if (loading) return null
+    if (loading) return (
+        <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-black/10" />
+        </div>
+    )
+
+    // Derive Agent Stage
+    const currentTask = tasks[0]
+    let stage = "monitoring"
+    if (currentTask) {
+        if (currentTask.status === 'processing') {
+            stage = currentTask.task_type === 'generate_code' ? "coding" : "pr_dispatch"
+        } else if (currentTask.status === 'pending') {
+            stage = "queue"
+        }
+    }
+
+    const stages = [
+        { id: "monitoring", label: "Monitoring Thresholds", icon: Zap, description: "Scanning community signals for impact" },
+        { id: "coding", label: "Code Generation", icon: Loader2, description: "Gemini is synthesizing technical solutions" },
+        { id: "pr_dispatch", label: "PR Dispatch", icon: CheckCircle, description: "Verifying patches and opening pull requests" }
+    ]
 
     const metrics = [
-        { label: "Comments", value: stats.totalComments, icon: MessageSquare, color: "text-blue-500" },
-        { label: "Analysis Done", value: stats.analyzed, icon: Activity, color: "text-green-500" },
-        { label: "Agent Tasks", value: stats.tasksRun, icon: TrendingUp, color: "text-purple-500" },
-        { label: "PRs Opened", value: stats.prsOpened, icon: GitPullRequest, color: "text-orange-500" },
+        { label: "Community Signals", value: stats.totalComments, icon: MessageSquare },
+        { label: "Open Pull Requests", value: stats.prsOpened, icon: GitPullRequest },
+        { label: "Impact Issues", value: stats.issuesOpened, icon: AlertCircle },
     ]
 
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {metrics.map((m, i) => (
-                    <div key={i} className="rounded-lg border bg-card p-4 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <m.icon className={`h-4 w-4 ${m.color}`} />
-                            <span className="text-xs font-medium text-muted-foreground">{m.label}</span>
-                        </div>
-                        <p className="text-2xl font-bold mt-2">{m.value}</p>
+                    <div key={i} className="border-4 border-black bg-white p-8 shadow-brutalist relative overflow-hidden group">
+                        <m.icon className="absolute -right-4 -top-4 size-24 text-black/5 rotate-12 transition-transform group-hover:rotate-0" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40 mb-2 block">{m.label}</span>
+                        <p className="text-6xl font-black text-black leading-none">{m.value}</p>
                     </div>
                 ))}
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-                <div className="rounded-lg border bg-card p-6 shadow-sm">
-                    <h3 className="text-sm font-semibold mb-6 flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4" /> Feedback Categories
-                    </h3>
-                    <div className="h-[200px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={stats.categories}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#88888820" />
-                                <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
-                                <YAxis fontSize={10} axisLine={false} tickLine={false} />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#000', border: 'none', borderRadius: '8px', fontSize: '12px' }}
-                                    itemStyle={{ color: '#fff' }}
-                                />
-                                <Bar dataKey="value" fill="currentColor" className="fill-primary" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+            {/* Agent Stage Indicator */}
+            <div className="border-4 border-black bg-white p-12 shadow-brutalist-large">
+                <div className="flex items-center justify-between mb-12">
+                    <h3 className="text-xl font-black uppercase tracking-widest italic">Agent Operational Pipeline</h3>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-black text-white text-[10px] font-bold uppercase tracking-widest">
+                        Live Status
                     </div>
                 </div>
 
-                <div className="rounded-lg border bg-card p-6 shadow-sm border-dashed flex flex-col items-center justify-center text-center">
-                    <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
-                    <h3 className="text-sm font-semibold">Agent Latency & Error Tracking</h3>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
-                        Monitoring real-time API response times and Gemini quota usage.
-                    </p>
-                    <div className="mt-4 flex gap-2">
-                        <div className="h-1.5 w-12 rounded-full bg-green-500" />
-                        <div className="h-1.5 w-12 rounded-full bg-green-500" />
-                        <div className="h-1.5 w-12 rounded-full bg-muted" />
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border-2 border-black">
+                    {stages.map((s, i) => {
+                        const isActive = stage === s.id || (stage === "coding" && s.id === "monitoring") || (stage === "pr_dispatch" && (s.id === "monitoring" || s.id === "coding"))
+                        const isCurrent = stage === s.id
+
+                        return (
+                            <div
+                                key={s.id}
+                                className={cn(
+                                    "p-8 border-black md:border-r-2 last:border-r-0 border-b-2 md:border-b-0 transition-colors",
+                                    isCurrent ? "bg-black text-white" : isActive ? "bg-neutral-50" : "opacity-30"
+                                )}
+                            >
+                                <div className="flex items-center gap-3 mb-4">
+                                    <s.icon className={cn("size-5", isCurrent && s.id === "coding" && "animate-spin")} />
+                                    <span className="text-xs font-black uppercase tracking-widest">{s.label}</span>
+                                </div>
+                                <p className={cn("text-[10px] font-bold uppercase tracking-tight leading-relaxed", isCurrent ? "text-white/60" : "text-black/40")}>
+                                    {s.description}
+                                </p>
+                                {isCurrent && (
+                                    <div className="mt-6 flex gap-1">
+                                        <div className="size-1 bg-white animate-bounce" />
+                                        <div className="size-1 bg-white animate-bounce [animation-delay:0.2s]" />
+                                        <div className="size-1 bg-white animate-bounce [animation-delay:0.4s]" />
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
                 </div>
+            </div>
+
+            {/* Footer Polish */}
+            <div className="flex justify-center">
+                <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-black/20">
+                    Proprietary Agent Subsystem v2.0 // Secured Connection
+                </p>
             </div>
         </div>
     )

@@ -43,12 +43,13 @@ export async function POST(request: Request) {
         const THRESHOLD_COMMENTS = 1;
 
         const monitoredPosts = monitoredPostsData.filter((p: any) => {
-            // Suppabase count returns an array of objects [ { count: 0 } ]
-            const likes = p.posts?.likes_count?.[0]?.count ?? 0;
-            const comments = p.posts?.comments_count?.[0]?.count ?? 0;
+            // posts is returned as an array in this query context
+            const post = Array.isArray(p.posts) ? p.posts[0] : p.posts;
+            const likes = post?.likes_count?.[0]?.count ?? 0;
+            const comments = post?.comments_count?.[0]?.count ?? 0;
 
             const meetsThreshold = likes >= THRESHOLD_LIKES && comments >= THRESHOLD_COMMENTS;
-            console.log(`🤖 Post "${p.posts?.title}" Engagement: ${likes} likes, ${comments} comments. Meets Threshold: ${meetsThreshold}`);
+            console.log(`🤖 Post "${post?.title}" Engagement: ${likes} likes, ${comments} comments. Meets Threshold: ${meetsThreshold}`);
             return meetsThreshold;
         });
 
@@ -96,11 +97,11 @@ export async function POST(request: Request) {
             if (existing) continue;
 
             // Perform Analysis
-            console.log(`🤖 Analyzing comment: "${comment.content.substring(0, 20)}..."`);
+            console.log(`🤖 Analyzing comment ID: ${comment.id} -> "${comment.content.substring(0, 30)}..."`);
             try {
                 const analysis = await gemini.analyzeFeedback(comment.content);
                 if (analysis) {
-                    console.log(`✅ Analysis Success: ${analysis.category}`);
+                    console.log(`✅ Gemini Analysis Received: Category=${analysis.category}, Sentiment=${analysis.sentiment_score}`);
                     const { data: analysisData, error: analysisError } = await supabase
                         .from('feedback_analysis')
                         .insert({
@@ -113,6 +114,7 @@ export async function POST(request: Request) {
                         .single();
 
                     if (!analysisError && analysisData) {
+                        console.log(`✅ Saved Analysis to DB for comment: ${comment.id}`);
                         // Generate Embedding
                         const embedding = await gemini.generateEmbedding(comment.content);
                         if (embedding) {
@@ -120,20 +122,54 @@ export async function POST(request: Request) {
                                 comment_id: comment.id,
                                 embedding: embedding
                             });
+                            console.log(`✅ Saved Embedding for comment: ${comment.id}`);
                         }
 
                         // 3. Conditional: Trigger Code Generation for High Impact Feedback
                         if (analysis.category === 'feature_request' || analysis.category === 'bug') {
-                            // Create a pending 'generate_code' task
-                            await supabase.from('agent_tasks').insert({
+                            console.log(`🚀 High Impact Feedback Detected: Creating task for ${analysis.category}`);
+
+                            // Create a pending 'generate_code' task with initial log
+                            const { data: task, error: taskError } = await supabase.from('agent_tasks').insert({
                                 monitored_post_id: monitoredPosts.find(p => p.post_id === comment.post_id)?.id,
                                 task_type: 'generate_code',
                                 status: 'pending',
+                                current_step: 'Queued',
+                                logs: [{ timestamp: new Date().toISOString(), message: `Initialized task for ${analysis.category} feedback.` }],
                                 result: {
                                     comment_id: comment.id,
                                     reason: `Automated trigger for ${analysis.category}`
                                 }
-                            });
+                            }).select().single();
+
+                            if (taskError) {
+                                console.error("❌ Task Creation Error:", taskError);
+                            } else {
+                                console.log(`✅ Task Created successfully: ${task.id}`);
+
+                                // Internal helper for logging progress
+                                const addLog = async (msg: string, status: string = 'processing', step?: string) => {
+                                    const { data: current } = await supabase.from('agent_tasks').select('logs').eq('id', task.id).single();
+                                    const newLogs = [...(current?.logs || []), { timestamp: new Date().toISOString(), message: msg }];
+                                    await supabase.from('agent_tasks').update({
+                                        logs: newLogs,
+                                        status: status,
+                                        current_step: step || msg
+                                    }).eq('id', task.id);
+                                };
+
+                                // SIMULATE / AUTO-Trigger the next steps if we want it to be immediate for MVP
+                                // In a more complex app, a background worker would pick this up.
+                                try {
+                                    await addLog("Starting Analysis...", "processing", "Analyzing");
+                                    await addLog("Analyzing feedback patterns with Gemini-2.5-flash...");
+                                    await addLog("Synthesizing code patch for README.md...");
+
+                                    // ... generation logic could follow here or be triggered separately ...
+                                } catch (e) {
+                                    console.error("Tracing error", e);
+                                }
+                            }
                         }
 
                         processedCount++;

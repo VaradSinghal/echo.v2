@@ -31,30 +31,45 @@ export class GitHubService {
         const [owner, name] = repo.split('/');
 
         // 1. Get default branch SHA
-        const repoInfo = await fetch(`https://api.github.com/repos/${repo}`, {
+        const repoResponse = await fetch(`https://api.github.com/repos/${repo}`, {
             headers: { Authorization: `Bearer ${token}` }
-        }).then(r => r.json());
+        });
+        if (!repoResponse.ok) {
+            const err = await repoResponse.json();
+            throw new Error(`GitHub Repo Fetch Failed: ${repoResponse.status} - ${JSON.stringify(err)}`);
+        }
+        const repoInfo = await repoResponse.json();
         const defaultBranch = repoInfo.default_branch;
 
-        const baseSha = await fetch(`https://api.github.com/repos/${repo}/git/refs/heads/${defaultBranch}`, {
+        const refResponse = await fetch(`https://api.github.com/repos/${repo}/git/refs/heads/${defaultBranch}`, {
             headers: { Authorization: `Bearer ${token}` }
-        }).then(r => r.json()).then(j => j.object.sha);
+        });
+        if (!refResponse.ok) {
+            const err = await refResponse.json();
+            throw new Error(`GitHub Ref Fetch Failed: ${refResponse.status} - ${JSON.stringify(err)}`);
+        }
+        const refInfo = await refResponse.json();
+        const baseSha = refInfo.object.sha;
 
         // 2. Create new branch
-        await fetch(`https://api.github.com/repos/${repo}/git/refs`, {
+        const branchResponse = await fetch(`https://api.github.com/repos/${repo}/git/refs`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha })
         });
+        if (!branchResponse.ok) {
+            const err = await branchResponse.json();
+            console.warn(`Branch creation warning: ${branchResponse.status} - ${JSON.stringify(err)}`);
+        }
 
-        // 3. Create blob/commit for each file (simplified: one commit for all)
-        // For simplicity in this MVP, we'll use the "create or update file contents" API for each file
+        // 3. Create blob/commit for each file
         for (const file of files) {
-            const currentFile = await fetch(`https://api.github.com/repos/${repo}/contents/${file.path}?ref=${branch}`, {
+            const contentResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${file.path}?ref=${branch}`, {
                 headers: { Authorization: `Bearer ${token}` }
-            }).then(r => r.json());
+            });
+            const currentFile = await contentResponse.json();
 
-            await fetch(`https://api.github.com/repos/${repo}/contents/${file.path}`, {
+            const putResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${file.path}`, {
                 method: 'PUT',
                 headers: { Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
@@ -64,10 +79,14 @@ export class GitHubService {
                     sha: currentFile.sha || undefined
                 })
             });
+            if (!putResponse.ok) {
+                const err = await putResponse.json();
+                throw new Error(`File Update Failed: ${putResponse.status} - ${JSON.stringify(err)}`);
+            }
         }
 
         // 4. Create PR
-        const pr = await fetch(`https://api.github.com/repos/${repo}/pulls`, {
+        const prResponse = await fetch(`https://api.github.com/repos/${repo}/pulls`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             body: JSON.stringify({
@@ -76,8 +95,11 @@ export class GitHubService {
                 head: branch,
                 base: defaultBranch
             })
-        }).then(r => r.json());
-
-        return pr;
+        });
+        if (!prResponse.ok) {
+            const err = await prResponse.json();
+            throw new Error(`PR Creation Failed: ${prResponse.status} - ${JSON.stringify(err)}`);
+        }
+        return await prResponse.json();
     }
 }

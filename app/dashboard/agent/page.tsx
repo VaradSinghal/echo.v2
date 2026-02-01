@@ -11,7 +11,7 @@ import { createClient } from "@/utils/supabase/client"
 import { Play, Loader2 } from "lucide-react"
 
 export default function AgentDashboard() {
-    const [selectedRepo, setSelectedRepo] = React.useState<string>("all")
+    const [selectedRepo, setSelectedRepo] = React.useState<string>("")
     const [monitoredRepos, setMonitoredRepos] = React.useState<any[]>([])
     const [loading, setLoading] = React.useState(false)
     const supabase = createClient()
@@ -22,7 +22,10 @@ export default function AgentDashboard() {
                 .from('monitored_posts')
                 .select('id, repo_id')
                 .eq('is_active', true)
-            if (data) setMonitoredRepos(data)
+            if (data && data.length > 0) {
+                setMonitoredRepos(data)
+                setSelectedRepo(data[0].repo_id) // Default to first repo
+            }
         }
         fetchRepos()
     }, [supabase])
@@ -39,47 +42,56 @@ export default function AgentDashboard() {
     }
 
     return (
-        <div className="flex flex-col gap-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h1 className="text-2xl font-bold tracking-tight">Agent Command Center</h1>
+        <div className="flex flex-col gap-12 pt-4">
+            {/* Minimalist Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b-2 border-black pb-8">
+                <div>
+                    <div className="inline-flex items-center gap-2 mb-4">
+                        <Play className="h-4 w-4 fill-black" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black">Agent Subsystem</span>
+                    </div>
+                    <h1 className="text-4xl md:text-5xl font-black tracking-tighter uppercase text-black">Mission Control</h1>
+                </div>
 
-                <div className="flex items-center gap-3">
-                    <select
-                        value={selectedRepo}
-                        onChange={(e) => setSelectedRepo(e.target.value)}
-                        className="flex h-9 w-[200px] items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <option value="all">All Repositories</option>
-                        {monitoredRepos.map(repo => (
-                            <option key={repo.id} value={repo.repo_id}>
-                                {repo.repo_id}
-                            </option>
-                        ))}
-                    </select>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <div className="relative w-full sm:w-[300px]">
+                        <label className="absolute -top-6 left-0 text-[10px] font-black uppercase tracking-widest text-black/30">Select Active Node</label>
+                        <select
+                            value={selectedRepo}
+                            onChange={(e) => setSelectedRepo(e.target.value)}
+                            className="w-full border-2 border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-widest focus:outline-none appearance-none rounded-none shadow-brutalist active:translate-y-[2px] active:shadow-none"
+                        >
+                            {monitoredRepos.length === 0 && <option value="">NO ACTIVE REPOS</option>}
+                            {monitoredRepos.map(repo => (
+                                <option key={repo.id} value={repo.repo_id}>
+                                    {repo.repo_id.toUpperCase()}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
                     <button
                         onClick={triggerAnalysis}
-                        disabled={loading}
-                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
+                        disabled={loading || monitoredRepos.length === 0}
+                        className="btn-solid text-[10px] tracking-[0.2em] px-8 py-3 w-full sm:w-auto flex items-center justify-center gap-3"
                     >
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Run Full Audit
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-white" />}
+                        SYNC AGENT
                     </button>
                 </div>
             </div>
 
-            <AnalyticsDashboard selectedRepo={selectedRepo} />
-
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-                <div className="col-span-4 space-y-6">
-                    <PRReviewPanel selectedRepo={selectedRepo} />
-                    <SemanticSearch selectedRepo={selectedRepo} />
-                    <SentimentChart selectedRepo={selectedRepo} />
-                </div>
-                <div className="col-span-3 space-y-6">
-                    <ActivityFeed selectedRepo={selectedRepo} />
-                    <MonitoringPanel selectedRepo={selectedRepo} />
-                </div>
+            {/* Focused Content Area */}
+            <div className="max-w-6xl mx-auto w-full">
+                {selectedRepo ? (
+                    <AnalyticsDashboard selectedRepo={selectedRepo} />
+                ) : (
+                    <div className="border-2 border-dashed border-black/10 p-24 text-center">
+                        <p className="text-xs font-black uppercase tracking-widest text-black/10">
+                            Initialize a repository from the feed to start monitoring.
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     )

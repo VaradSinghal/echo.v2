@@ -80,14 +80,17 @@ export class GeminiService {
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-            const prompt = `Analyze this user feedback and return JSON with sentiment_score (-1 to 1), category ("feature_request", "bug", "question", "feedback"), and keywords (string[]). Comment: "${comment}"`;
+            const prompt = `Analyze this user feedback. Return ONLY valid JSON and nothing else.
+            JSON structure: { "sentiment_score": number (-1 to 1), "category": "feature_request" | "bug" | "question" | "feedback", "keywords": string[] }
+            Comment: "${comment}"`;
 
             const result = await model.generateContent(prompt);
             const text = result.response.text();
             console.log("🤖 Gemini Raw Response:", text);
 
-            const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
-            return JSON.parse(cleanJson);
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error("No JSON found in response");
+            return JSON.parse(jsonMatch[0]);
         } catch (error: any) {
             if (error?.status === 429) manager.markRateLimited(apiKey);
             console.error("Gemini analysis failed:", error);
@@ -115,11 +118,12 @@ export class GeminiService {
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-            const prompt = `Extract top 5 themes from: ${comments.join(", ")}. Return JSON array of strings.`;
+            const prompt = `Extract top 5 themes from: ${comments.join(", ")}. Return ONLY a JSON array of strings.`;
             const result = await model.generateContent(prompt);
             const text = result.response.text();
-            const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
-            return JSON.parse(cleanJson);
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            if (!jsonMatch) throw new Error("No JSON array found");
+            return JSON.parse(jsonMatch[0]);
         } catch (error) {
             console.error("Gemini topics failed:", error);
             return [];
@@ -131,11 +135,12 @@ export class GeminiService {
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-            const prompt = `Update ${filePath} for feedback: ${feedback}. Current code:\n${currentCode}\nReturn JSON with {new_code, explanation, confidence_score}.`;
+            const prompt = `Update ${filePath} for feedback: ${feedback}. Current code:\n${currentCode}\nReturn ONLY JSON with {new_code: string, explanation: string, confidence_score: number}.`;
             const result = await model.generateContent(prompt);
             const text = result.response.text();
-            const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
-            return JSON.parse(cleanJson);
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error("No JSON found in response");
+            return JSON.parse(jsonMatch[0]);
         } catch (error) {
             console.error("Gemini code gen failed:", error);
             return null;

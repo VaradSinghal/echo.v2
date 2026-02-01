@@ -27,7 +27,7 @@ export default async function DashboardLayout({
     const navItems = [
         { href: "/dashboard/feed", label: "Community Feed", icon: <Activity className="h-5 w-5" /> },
         { href: "/dashboard/agent", label: "Echo Agent", icon: <Bot className="h-5 w-5" /> },
-        { href: "/dashboard/profile", label: "Settings", icon: <User className="h-5 w-5" /> },
+        { href: "/dashboard/profile", label: "Profile", icon: <User className="h-5 w-5" /> },
     ];
 
     return (
