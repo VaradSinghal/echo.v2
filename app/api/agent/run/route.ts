@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/utils/supabase/service";
 import { GeminiService } from "@/lib/gemini";
 import { checkRateLimit } from "@/lib/redis";
+import { createPullRequestAction } from "@/app/actions/agent";
 
 export async function POST(request: Request) {
     // Rate Limit check
@@ -150,28 +151,10 @@ export async function POST(request: Request) {
                             } else {
                                 console.log(`✅ Task Created successfully: ${task.id}`);
 
-                                // Internal helper for logging progress
-                                const addLog = async (msg: string, status: string = 'processing', step?: string) => {
-                                    const { data: current } = await supabase.from('agent_tasks').select('logs').eq('id', task.id).single();
-                                    const newLogs = [...(current?.logs || []), { timestamp: new Date().toISOString(), message: msg }];
-                                    await supabase.from('agent_tasks').update({
-                                        logs: newLogs,
-                                        status: status,
-                                        current_step: step || msg
-                                    }).eq('id', task.id);
-                                };
-
-                                // SIMULATE / AUTO-Trigger the next steps if we want it to be immediate for MVP
-                                // In a more complex app, a background worker would pick this up.
-                                try {
-                                    await addLog("Starting Analysis...", "processing", "Analyzing");
-                                    await addLog("Analyzing feedback patterns with Gemini-2.5-flash...");
-                                    await addLog("Synthesizing code patch for README.md...");
-
-                                    // ... generation logic could follow here or be triggered separately ...
-                                } catch (e) {
-                                    console.error("Tracing error", e);
-                                }
+                                // Proactively trigger the automated engineering pipeline
+                                createPullRequestAction(task.id).catch(e => {
+                                    console.error("❌ Autonomous PR dispatch failed:", e);
+                                });
                             }
                         }
 

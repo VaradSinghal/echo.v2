@@ -1,7 +1,8 @@
-import { createClient } from "@/utils/supabase/server";
+import { createServiceRoleClient } from "@/utils/supabase/service";
 
 export class GitHubService {
     private accessToken: string | null = null;
+    private supabase = createServiceRoleClient();
 
     constructor(accessToken?: string) {
         if (accessToken) {
@@ -12,15 +13,14 @@ export class GitHubService {
     private async getAccessToken(userId: string) {
         if (this.accessToken) return this.accessToken;
 
-        const supabase = createClient();
-        const { data, error } = await supabase
+        const { data, error } = await this.supabase
             .from('github_tokens')
             .select('access_token')
             .eq('user_id', userId)
             .single();
 
         if (error || !data) {
-            throw new Error("GitHub access token not found for user.");
+            throw new Error(`GitHub access token not found for user ${userId}.`);
         }
         this.accessToken = data.access_token;
         return this.accessToken;

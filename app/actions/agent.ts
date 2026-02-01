@@ -12,21 +12,36 @@ export async function createPullRequestAction(taskId: string) {
     const supabase = createServiceRoleClient();
     const userClient = createClient();
 
-    // 1. Fetch task and related data
+    // 1. Fetch task and related data with owner info
     const { data: task, error: taskError } = await supabase
         .from('agent_tasks')
         .select(`
             *,
-            monitored_posts (repo_id)
+            monitored_posts (
+                repo_id,
+                posts (user_id)
+            )
         `)
         .eq('id', taskId)
         .single();
 
     if (taskError || !task) return { error: "Task not found" };
 
-    // 2. Fetch User ID (for token)
+    // 2. Fetch User ID (for token) - try session first, then fallback to post owner
+    let targetUserId: string | undefined;
     const { data: { user } } = await userClient.auth.getUser();
-    if (!user) return { error: "Unauthorized" };
+
+    if (user) {
+        targetUserId = user.id;
+    } else {
+        // Fallback to the user who owns the post/repo
+        const post = Array.isArray(task.monitored_posts.posts)
+            ? task.monitored_posts.posts[0]
+            : task.monitored_posts.posts;
+        targetUserId = post?.user_id;
+    }
+
+    if (!targetUserId) return { error: "Authorized user not found for this task" };
 
     try {
         const github = new GitHubService();
@@ -90,7 +105,7 @@ export async function createPullRequestAction(taskId: string) {
         // 3. Create PR via GitHub
         await addLog(`Initializing PR in ${repo} on branch ${branch}...`);
         const pr = await github.createPR(
-            user.id,
+            targetUserId,
             repo,
             branch,
             "Agent: " + (aiResult.explanation.substring(0, 50) + "..."),
