@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Echo Agent - Community-Driven Code Automation
 
-## Getting Started
+Echo Agent is an AI-powered platform that bridges the gap between community feedback and codebase evolution. By monitoring GitHub repository comments and discussions, Echo uses Gemini AI and pgVector to analyze feedback, detect patterns, and automatically propose code changes via Pull Requests.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Real-time Monitoring**: Tracks feedback across multiple repositories via Supabase.
+- **Semantic Feedback Analysis**: Uses Gemini Pro for sentiment and category classification.
+- **Vector-Powered Search**: Semantic search over thousands of comments using pgVector.
+- **AI Code Proposals**: Automatically implements fixes and features based on community consensus.
+- **Human-in-the-Loop**: A streamlined PR approval system for developers.
+- **Multi-Account API Support**: Rotating Gemini API keys to handle scale and rate limits.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Frontend**: Next.js 14 (App Router), Tailwind CSS, Shadcn UI
+- **Backend**: Next.js API Routes, Server Actions
+- **Database**: Supabase (Postgres) with `pgVector`
+- **AI**: Google Gemini AI (Pro & Embedding models)
+- **Infrastructure**: Upstash Redis (Rate Limiting), Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Setup Instructions
 
-## Learn More
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/your-repo/echo-v2.git
+   cd echo-v2
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+2. **Environment Variables**:
+   Create a `.env.local` file with the following:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+   
+   GEMINI_API_KEYS=key1,key2,key3
+   UPSTASH_REDIS_REST_URL=your_redis_url
+   UPSTASH_REDIS_REST_TOKEN=your_redis_token
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. **Database Migrations**:
+   Deploy the migrations found in the `supabase/migrations` folder to your Supabase project.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
 
-## Deploy on Vercel
+5. **Run Locally**:
+   ```bash
+   npm run dev
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Documentation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [User Guide](file:///e:/Projects/echo-v2/USER_GUIDE.md)
+- [Architecture Walkthrough](file:///C:/Users/Varad%20Singhal/.gemini/antigravity/brain/d83d4245-9053-48fd-b17c-6955eeef5027/walkthrough.md)

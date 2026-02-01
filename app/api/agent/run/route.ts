@@ -79,13 +79,20 @@ export async function POST(request: Request) {
                         });
                     }
 
-                    // Create Agent Task log
-                    await supabase.from('agent_tasks').insert({
-                        monitored_post_id: monitoredPosts.find(p => p.post_id === comment.post_id)?.post_id, // Not perfect mapping if multiple monitoring
-                        task_type: 'analyze',
-                        status: 'completed',
-                        result: analysis
-                    });
+                    // 3. Conditional: Trigger Code Generation for High Impact Feedback
+                    if (analysis.category === 'feature_request' || analysis.category === 'bug') {
+                        // Create a pending 'generate_code' task
+                        await supabase.from('agent_tasks').insert({
+                            monitored_post_id: monitoredPosts.find(p => p.post_id === comment.post_id)?.id,
+                            task_type: 'generate_code',
+                            status: 'pending',
+                            result: {
+                                comment_id: comment.id,
+                                reason: `Automated trigger for ${analysis.category}`
+                            }
+                        });
+                    }
+
                     processedCount++;
                 }
             }

@@ -8,8 +8,9 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
 export const metadata: Metadata = {
-  title: "Echo V2 - GitHub Manager",
-  description: "Manage your GitHub repositories with Supabase",
+  title: "Echo Agent - Community-Driven Code Automation",
+  description: "Transform GitHub community feedback into actionable pull requests using Gemini AI and pgVector.",
+  keywords: ["GitHub", "AI", "Agent", "Supabase", "Gemini", "Automation", "Open Source"],
 };
 
 export default function RootLayout({

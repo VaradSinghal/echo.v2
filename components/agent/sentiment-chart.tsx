@@ -43,7 +43,7 @@ export function SentimentChart() {
                         <YAxis domain={[-1, 1]} />
                         <Tooltip
                             labelFormatter={() => ""}
-                            formatter={(value: number) => [value.toFixed(2), "Score"]}
+                            formatter={(value: any) => [typeof value === 'number' ? value.toFixed(2) : value, "Score"]}
                         />
                         <Bar dataKey="sentiment" fill="#2563eb" radius={[4, 4, 0, 0]} />
                     </BarChart>

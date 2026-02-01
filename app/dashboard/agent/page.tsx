@@ -4,6 +4,9 @@ import * as React from "react"
 import { MonitoringPanel } from "@/components/agent/monitoring-panel"
 import { SentimentChart } from "@/components/agent/sentiment-chart"
 import { ActivityFeed } from "@/components/agent/activity-feed"
+import { SemanticSearch } from "@/components/agent/semantic-search"
+import { PRReviewPanel } from "@/components/agent/pr-review-panel"
+import { AnalyticsDashboard } from "@/components/agent/analytics-dashboard"
 import { createClient } from "@/utils/supabase/client"
 import { Play } from "lucide-react"
 
@@ -25,23 +28,19 @@ export default function AgentDashboard() {
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">Agent Command Center</h1>
-                <button
-                    onClick={triggerAnalysis}
-                    disabled={loading}
-                    className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 disabled:opacity-50"
-                >
-                    <Play className="h-4 w-4" />
-                    {loading ? 'Running Analysis...' : 'Run Analysis Now'}
-                </button>
             </div>
+
+            <AnalyticsDashboard />
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
                 <div className="col-span-4 space-y-6">
+                    <PRReviewPanel />
+                    <SemanticSearch />
                     <SentimentChart />
-                    <MonitoringPanel />
                 </div>
-                <div className="col-span-3">
+                <div className="col-span-3 space-y-6">
                     <ActivityFeed />
+                    <MonitoringPanel />
                 </div>
             </div>
         </div>

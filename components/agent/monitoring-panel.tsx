@@ -2,30 +2,8 @@
 
 import * as React from "react"
 import { createClient } from "@/utils/supabase/client"
-import { Switch } from "@/components/ui/switch" // We need to build this or use basic input
+import { Switch } from "@/components/ui/switch"
 import { Loader2 } from "lucide-react"
-
-// Minimal Switch Component for now
-function SimpleSwitch({ checked, onCheckedChange, disabled }: { checked: boolean, onCheckedChange: (c: boolean) => void, disabled?: boolean }) {
-    return (
-        <button
-            type="button"
-            role="switch"
-            aria-checked={checked}
-            disabled={disabled}
-            onClick={() => onCheckedChange(!checked)}
-            className={`
-        relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50
-        ${checked ? 'bg-primary' : 'bg-input'}
-      `}
-        >
-            <span className={`
-        pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform
-        ${checked ? 'translate-x-5' : 'translate-x-0'}
-      `} />
-        </button>
-    )
-}
 
 export function MonitoringPanel() {
     const [monitoredPosts, setMonitoredPosts] = React.useState<any[]>([])
@@ -76,7 +54,7 @@ export function MonitoringPanel() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs text-muted-foreground">{item.is_active ? 'Active' : 'Paused'}</span>
-                                    <SimpleSwitch
+                                    <Switch
                                         checked={item.is_active}
                                         onCheckedChange={() => toggleMonitoring(item.id, item.is_active)}
                                     />
