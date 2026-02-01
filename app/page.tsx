@@ -4,7 +4,16 @@ import { LandingNav } from "@/components/landing/landing-nav"
 import { LandingFooter } from "@/components/landing/landing-footer"
 import { LiveFeed } from "@/components/landing/live-feed"
 
-export default function Home() {
+import { redirect } from "next/navigation"
+
+export default function Home({
+  searchParams,
+}: {
+  searchParams: { code?: string; next?: string }
+}) {
+  if (searchParams.code) {
+    return redirect(`/auth/callback?code=${searchParams.code}${searchParams.next ? `&next=${searchParams.next}` : ''}`)
+  }
   return (
     <main className="flex flex-col min-h-screen bg-white">
       <LandingNav />
