@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { formatDistanceToNow } from "date-fns"
 import { Loader2, Reply } from "lucide-react"
+import { triggerAgentRunAction } from "@/app/actions/agent"
 
 interface Comment {
     id: string
@@ -75,6 +76,8 @@ export function CommentSection({ postId, currentUserId }: CommentSectionProps) {
         if (!error) {
             setNewComment("")
             setReplyingTo(null)
+            // Trigger agent check proactively
+            triggerAgentRunAction()
         }
     }
 

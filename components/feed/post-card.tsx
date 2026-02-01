@@ -23,6 +23,7 @@ interface PostProps {
         comments_count: number
         user_has_liked: boolean
         is_monitored: boolean
+        user_id: string
     }
     currentUserId: string
 }
@@ -94,18 +95,20 @@ export function PostCard({ post, currentUserId }: PostProps) {
                         <span>Discuss ({post.comments_count})</span>
                     </button>
 
-                    <button
-                        onClick={handleToggleMonitoring}
-                        disabled={isToggling}
-                        className={`group flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-all ${isMonitored
+                    {currentUserId === post.user_id && (
+                        <button
+                            onClick={handleToggleMonitoring}
+                            disabled={isToggling}
+                            className={`group flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-all ${isMonitored
                                 ? "text-[#00FF41] hover:text-[#00FF41]/70"
                                 : "text-black/30 hover:text-black"
-                            }`}
-                        title={isMonitored ? "Agent is monitoring this post" : "Enable Echo Agent for this post"}
-                    >
-                        <Bot className={`h-4 w-4 ${isMonitored ? "animate-pulse" : ""}`} />
-                        <span>{isMonitored ? "Agent Active" : "Enable Agent"}</span>
-                    </button>
+                                }`}
+                            title={isMonitored ? "Agent is monitoring this post" : "Enable Echo Agent for this post"}
+                        >
+                            <Bot className={`h-4 w-4 ${isMonitored ? "animate-pulse" : ""}`} />
+                            <span>{isMonitored ? "Agent Active" : "Enable Agent"}</span>
+                        </button>
+                    )}
                 </div>
                 <button className="text-black/30 hover:text-black">
                     <Share2 className="h-4 w-4" />

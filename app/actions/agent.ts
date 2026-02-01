@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createServiceRoleClient } from "@/utils/supabase/service";
 import { GeminiService } from "@/lib/gemini";
 import { GitHubService } from "@/lib/github";
+import { headers } from "next/headers";
 
 const gemini = new GeminiService();
 
@@ -200,6 +201,25 @@ export async function toggleMonitoringAction(postId: string, repoId: string | nu
         }
     } catch (e: any) {
         console.error("Error toggling monitoring:", e);
+        return { error: e.message };
+    }
+}
+
+export async function triggerAgentRunAction() {
+    try {
+        const headersList = headers();
+        const host = headersList.get("host");
+        const protocol = headersList.get("x-forwarded-proto") || "https";
+        const isLocal = host?.includes("localhost") || host?.includes("127.0.0.1");
+        const origin = isLocal ? `http://${host}` : `${protocol}://${host}`;
+
+        const resp = await fetch(`${origin}/api/agent/run`, {
+            method: 'POST',
+            cache: 'no-store'
+        });
+        return await resp.json();
+    } catch (e: any) {
+        console.error("Agent trigger error", e);
         return { error: e.message };
     }
 }

@@ -4,6 +4,7 @@ import * as React from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Heart } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { triggerAgentRunAction } from "@/app/actions/agent"
 
 interface LikeButtonProps {
     postId: string
@@ -35,6 +36,8 @@ export function LikeButton({ postId, userId, initialLikes = 0, initialLiked = fa
         try {
             if (nextLiked) {
                 await supabase.from('likes').insert({ post_id: postId, user_id: userId })
+                // Trigger agent check proactively
+                triggerAgentRunAction()
             } else {
                 await supabase.from('likes').delete().match({ post_id: postId, user_id: userId })
             }
