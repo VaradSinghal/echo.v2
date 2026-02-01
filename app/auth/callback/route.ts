@@ -9,6 +9,7 @@ export async function GET(request: Request) {
     if (code) {
         const supabase = createClient()
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
         if (!error && data.session) {
             const { session } = data
             const { user } = session
@@ -50,6 +51,16 @@ export async function GET(request: Request) {
             }
 
             return NextResponse.redirect(`${origin}${next}`)
+        }
+
+        // Handle case where code might have been used already but session is established (double hit)
+        const { data: { session: existingSession } } = await supabase.auth.getSession()
+        if (existingSession) {
+            return NextResponse.redirect(`${origin}${next}`)
+        }
+
+        if (error) {
+            console.error('Auth exchange error:', error)
         }
     }
 

@@ -21,7 +21,7 @@ export default async function DashboardLayout({
         "use server";
         const supabase = createClient();
         await supabase.auth.signOut();
-        redirect("/login");
+        redirect("/");
     };
 
     const navItems = [

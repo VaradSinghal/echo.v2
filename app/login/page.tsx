@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { Github, Shield, Lock, ArrowRight, Terminal } from "lucide-react";
 
 export default async function LoginPage({
     searchParams,
@@ -20,8 +21,6 @@ export default async function LoginPage({
     const signIn = async () => {
         "use server";
 
-        // We need to construct the URL dynamically or use a fixed env var
-        // Since we are in a server action, let's use the origin header or ENV
         const headersList = headers();
         const host = headersList.get("host");
         const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
@@ -32,7 +31,7 @@ export default async function LoginPage({
             provider: "github",
             options: {
                 redirectTo: `${origin}/auth/callback`,
-                scopes: "read:user repo", // Request repo access
+                scopes: "read:user repo",
             },
         });
 
@@ -42,44 +41,92 @@ export default async function LoginPage({
     };
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center py-2">
-            <div className="w-full max-w-md space-y-8 px-4 sm:px-0">
-                <div className="text-center">
-                    <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground">
-                        Sign in to your account
-                    </h2>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                        Manage your GitHub repositories with Echo
-                    </p>
+        <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center relative overflow-hidden font-display selection:bg-[#00FF41] selection:text-black">
+            {/* Geometric Background Overlay */}
+            <div className="absolute inset-0 z-0 opacity-20 pointer-events-none"
+                style={{
+                    backgroundImage: `linear-gradient(#1A1A1A 1px, transparent 1px), linear-gradient(90deg, #1A1A1A 1px, transparent 1px)`,
+                    backgroundSize: '40px 40px'
+                }}
+            />
+            <div className="absolute inset-0 z-0 opacity-10 pointer-events-none"
+                style={{
+                    backgroundImage: `radial-gradient(circle at 2px 2px, #00FF41 1px, transparent 0)`,
+                    backgroundSize: '24px 24px'
+                }}
+            />
+
+            <div className="relative z-10 w-full max-w-[480px] p-4 lg:p-0">
+                {/* Branding Block */}
+                <div className="mb-12 text-center">
+                    <div className="inline-flex items-center gap-3 bg-white px-4 py-2 border-2 border-black mb-6 rotate-[-1deg] shadow-brutalist">
+                        <Terminal className="size-4 text-black" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black">Authentication Node // Echo v2.0</span>
+                    </div>
                 </div>
 
-                <form action={signIn} className="mt-8 space-y-6">
-                    <button
-                        type="submit"
-                        className="group relative flex w-full justify-center rounded-md bg-black py-2 px-4 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-                    >
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                            <svg
-                                className="h-5 w-5 text-gray-500 group-hover:text-gray-400"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    fillRule="evenodd"
-                                    d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                                    clipRule="evenodd"
-                                />
-                            </svg>
-                        </span>
-                        Sign in with GitHub
-                    </button>
+                {/* Main Card */}
+                <div className="border-[6px] border-black bg-white shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] p-8 md:p-12 relative overflow-hidden group">
+                    {/* Decorative Elements */}
+                    <div className="absolute top-0 right-0 p-4 opacity-5">
+                        <Shield className="size-32 rotate-12" />
+                    </div>
 
-                    {searchParams?.message && (
-                        <p className="mt-4 text-center text-sm font-medium text-destructive">
-                            {searchParams.message}
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="size-2 bg-[#00FF41]" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-black/40">Secure Access</span>
+                        </div>
+                        <h1 className="text-5xl md:text-6xl font-black uppercase tracking-tighter text-black mb-4 leading-[0.9]">
+                            System Access <br />
+                            <span className="text-black/20">Sign In</span>
+                        </h1>
+                        <p className="text-xs font-bold uppercase tracking-widest text-black/60 mb-12 leading-relaxed max-w-[280px]">
+                            Connect your security credentials to access the agent monitoring dashboard.
                         </p>
-                    )}
-                </form>
+
+                        <form action={signIn} className="space-y-6">
+                            <button
+                                type="submit"
+                                className="group relative w-full flex items-center justify-between bg-black text-white px-8 py-6 text-sm font-black uppercase tracking-[0.2em] transition-all hover:bg-[#00FF41] hover:text-black active:translate-y-1"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <Github className="size-6 transition-transform group-hover:scale-110" />
+                                    <span>Sign in with GitHub</span>
+                                </div>
+                                <ArrowRight className="size-5 opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0" />
+                            </button>
+
+                            {searchParams?.message && (
+                                <div className="p-4 border-2 border-black bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
+                                    <Lock className="size-4 shrink-0" />
+                                    {searchParams.message}
+                                </div>
+                            )}
+                        </form>
+                    </div>
+
+                    <div className="mt-12 flex items-center justify-between pt-8 border-t-2 border-black/5">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[8px] font-black text-black/30 uppercase tracking-[0.2em]">Connection Status</span>
+                            <span className="text-[10px] font-black text-[#00FF41] uppercase tracking-widest flex items-center gap-2">
+                                <span className="size-1.5 rounded-full bg-[#00FF41] animate-pulse" />
+                                Ready
+                            </span>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[8px] font-black text-black/20 uppercase tracking-[0.2em]">Protocol</p>
+                            <p className="text-[10px] font-black text-black/40 uppercase tracking-widest">TLS 1.3 / GH_OAUTH</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer Metadata */}
+                <div className="mt-8 flex items-center justify-center gap-8 opacity-20 hover:opacity-100 transition-opacity">
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white">
+                        Proprietary Agent Subsystem // 2026
+                    </p>
+                </div>
             </div>
         </div>
     );

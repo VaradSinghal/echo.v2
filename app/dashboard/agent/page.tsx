@@ -6,6 +6,7 @@ import { SentimentChart } from "@/components/agent/sentiment-chart"
 import { ActivityFeed } from "@/components/agent/activity-feed"
 import { SemanticSearch } from "@/components/agent/semantic-search"
 import { PRReviewPanel } from "@/components/agent/pr-review-panel"
+import { WorkHistoryPanel } from "@/components/agent/work-history-panel"
 import { AnalyticsDashboard } from "@/components/agent/analytics-dashboard"
 import { createClient } from "@/utils/supabase/client"
 import { Play, Loader2 } from "lucide-react"
@@ -84,7 +85,14 @@ export default function AgentDashboard() {
             {/* Focused Content Area */}
             <div className="max-w-6xl mx-auto w-full">
                 {selectedRepo ? (
-                    <AnalyticsDashboard selectedRepo={selectedRepo} />
+                    <div className="space-y-24">
+                        <AnalyticsDashboard selectedRepo={selectedRepo} />
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                            <PRReviewPanel selectedRepo={selectedRepo} />
+                            <WorkHistoryPanel selectedRepo={selectedRepo} />
+                        </div>
+                    </div>
                 ) : (
                     <div className="border-2 border-dashed border-black/10 p-24 text-center">
                         <p className="text-xs font-black uppercase tracking-widest text-black/10">

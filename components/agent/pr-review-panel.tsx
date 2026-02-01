@@ -71,7 +71,7 @@ export function PRReviewPanel({ selectedRepo }: { selectedRepo: string }) {
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
             <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Code Proposas (PR Queue)</h3>
+                    <h3 className="text-lg font-semibold">Code Proposals (PR Queue)</h3>
                     <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
                         {tasks.filter(t => t.status === 'pending').length} Pending
                     </span>
@@ -89,7 +89,7 @@ export function PRReviewPanel({ selectedRepo }: { selectedRepo: string }) {
                                         <Code2 className="h-4 w-4" />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium">Implementation Proposa for {task.monitored_posts?.repo_id || 'Unknown Repo'}</p>
+                                        <p className="text-sm font-medium">Implementation Proposal for {task.monitored_posts?.repo_id || 'Unknown Repo'}</p>
                                         <p className="text-xs text-muted-foreground">ID: {task.id.substring(0, 8)} • {task.status}</p>
                                     </div>
                                 </div>

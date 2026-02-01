@@ -1,13 +1,15 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server";
+import { createServiceRoleClient } from "@/utils/supabase/service";
 import { GeminiService } from "@/lib/gemini";
 import { GitHubService } from "@/lib/github";
 
 const gemini = new GeminiService();
 
 export async function createPullRequestAction(taskId: string) {
-    const supabase = createClient();
+    const supabase = createServiceRoleClient();
+    const userClient = createClient();
 
     // 1. Fetch task and related data
     const { data: task, error: taskError } = await supabase
@@ -22,7 +24,7 @@ export async function createPullRequestAction(taskId: string) {
     if (taskError || !task) return { error: "Task not found" };
 
     // 2. Fetch User ID (for token)
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await userClient.auth.getUser();
     if (!user) return { error: "Unauthorized" };
 
     try {
@@ -30,7 +32,20 @@ export async function createPullRequestAction(taskId: string) {
         const repo = task.monitored_posts.repo_id;
         const branch = `echo-agent-fix-${taskId.substring(0, 8)}`;
 
+        // Helper for logging
+        const addLog = async (msg: string, status: string = 'processing', step?: string) => {
+            const { data: currentTask } = await supabase.from('agent_tasks').select('logs').eq('id', taskId).single();
+            const newLogs = [...(currentTask?.logs || []), { timestamp: new Date().toISOString(), message: msg }];
+            await supabase.from('agent_tasks').update({
+                logs: newLogs,
+                status: status,
+                current_step: step || msg
+            }).eq('id', taskId);
+        };
+
         // 1. Logic for Code Generation
+        await addLog("Fetching community sentiment analysis...", "processing", "Synthesizing");
+
         // Fetch the comment content that triggered this
         const { data: comment } = await supabase
             .from('comments')
@@ -45,10 +60,15 @@ export async function createPullRequestAction(taskId: string) {
         // For the demo, we'll use a standard template if we can't fetch it easily
         const currentCode = "# Echo Project\n\nThis is a placeholder for the repository documentation.";
 
-        console.log(`🤖 Generating code for task ${taskId}...`);
+        await addLog("Generating optimized code patch with Gemini-2.5-flash...");
         const aiResult = await gemini.generateCode(feedback, filePath, currentCode);
 
-        if (!aiResult) throw new Error("AI Code Generation failed");
+        if (!aiResult) {
+            await addLog("Code generation failed.", "failed");
+            throw new Error("AI Code Generation failed");
+        }
+
+        await addLog("Code synthesis complete. Preparing GitHub dispatch...", "processing", "Dispatching");
 
         // 2. Save Generated Code
         const { data: generatedCode, error: genError } = await supabase
@@ -67,6 +87,7 @@ export async function createPullRequestAction(taskId: string) {
         if (genError) throw new Error(`Failed to save generated code: ${genError.message}`);
 
         // 3. Create PR via GitHub
+        await addLog(`Initializing PR in ${repo} on branch ${branch}...`);
         const pr = await github.createPR(
             user.id,
             repo,
@@ -76,8 +97,13 @@ export async function createPullRequestAction(taskId: string) {
             [{ path: filePath, content: aiResult.new_code }]
         );
 
+        await addLog(`PR #${pr.number} successfully dispatched to GitHub!`, "completed", "Completed");
+
         // 4. Update Task & Log PR
-        await supabase.from('agent_tasks').update({ status: 'completed' }).eq('id', taskId);
+        await supabase.from('agent_tasks').update({
+            status: 'completed',
+            current_step: 'PR Link: ' + pr.html_url
+        }).eq('id', taskId);
 
         await supabase.from('github_prs').insert({
             generated_code_id: generatedCode.id,
@@ -89,7 +115,15 @@ export async function createPullRequestAction(taskId: string) {
         return { success: true, url: pr.html_url };
     } catch (e: any) {
         console.error("❌ Agent Action Error:", e.message);
-        await supabase.from('agent_tasks').update({ status: 'failed', result: { ...task.result, error: e.message } }).eq('id', taskId);
+        const { data: currentTask } = await supabase.from('agent_tasks').select('logs').eq('id', taskId).single();
+        const failLogs = [...(currentTask?.logs || []), { timestamp: new Date().toISOString(), message: `ERROR: ${e.message}` }];
+
+        await supabase.from('agent_tasks').update({
+            status: 'failed',
+            logs: failLogs,
+            current_step: 'Initialization Failed',
+            result: { ...task.result, error: e.message }
+        }).eq('id', taskId);
         return { error: e.message };
     }
 }
