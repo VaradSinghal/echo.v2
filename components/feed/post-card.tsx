@@ -3,9 +3,10 @@
 import * as React from "react"
 import ReactMarkdown from "react-markdown"
 import { formatDistanceToNow } from "date-fns"
-import { Github, MessageSquare, Share2, ExternalLink } from "lucide-react"
+import { Github, MessageSquare, Share2, ExternalLink, Bot, ShieldCheck, ShieldAlert } from "lucide-react"
 import { LikeButton } from "./like-button"
 import { CommentSection } from "./comment-section"
+import { toggleMonitoringAction } from "@/app/actions/agent"
 
 interface PostProps {
     post: {
@@ -21,12 +22,24 @@ interface PostProps {
         likes_count: number
         comments_count: number
         user_has_liked: boolean
+        is_monitored: boolean
     }
     currentUserId: string
 }
 
 export function PostCard({ post, currentUserId }: PostProps) {
     const [showComments, setShowComments] = React.useState(false)
+    const [isMonitored, setIsMonitored] = React.useState(post.is_monitored)
+    const [isToggling, setIsToggling] = React.useState(false)
+
+    const handleToggleMonitoring = async () => {
+        setIsToggling(true)
+        const result = await toggleMonitoringAction(post.id, post.repo_link)
+        if (result.success) {
+            setIsMonitored(result.active!)
+        }
+        setIsToggling(false)
+    }
 
     return (
         <div className="border-2 border-black bg-white shadow-brutalist-large overflow-hidden transition-all hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
@@ -79,6 +92,19 @@ export function PostCard({ post, currentUserId }: PostProps) {
                     >
                         <MessageSquare className="h-4 w-4" />
                         <span>Discuss ({post.comments_count})</span>
+                    </button>
+
+                    <button
+                        onClick={handleToggleMonitoring}
+                        disabled={isToggling}
+                        className={`group flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-all ${isMonitored
+                                ? "text-[#00FF41] hover:text-[#00FF41]/70"
+                                : "text-black/30 hover:text-black"
+                            }`}
+                        title={isMonitored ? "Agent is monitoring this post" : "Enable Echo Agent for this post"}
+                    >
+                        <Bot className={`h-4 w-4 ${isMonitored ? "animate-pulse" : ""}`} />
+                        <span>{isMonitored ? "Agent Active" : "Enable Agent"}</span>
                     </button>
                 </div>
                 <button className="text-black/30 hover:text-black">

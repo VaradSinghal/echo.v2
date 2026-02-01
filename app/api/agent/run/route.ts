@@ -43,18 +43,17 @@ export async function POST(request: Request) {
         const THRESHOLD_COMMENTS = 1;
 
         const monitoredPosts = monitoredPostsData.filter((p: any) => {
-            // posts is returned as an array in this query context
             const post = Array.isArray(p.posts) ? p.posts[0] : p.posts;
             const likes = post?.likes_count?.[0]?.count ?? 0;
             const comments = post?.comments_count?.[0]?.count ?? 0;
 
             const meetsThreshold = likes >= THRESHOLD_LIKES && comments >= THRESHOLD_COMMENTS;
-            console.log(`🤖 Post "${post?.title}" Engagement: ${likes} likes, ${comments} comments. Meets Threshold: ${meetsThreshold}`);
+            console.log(`🤖 Agent Trace | Post: "${post?.title?.substring(0, 20)}..." | Eng: ${likes}L, ${comments}C | Threshold: ${THRESHOLD_LIKES}L, ${THRESHOLD_COMMENTS}C | Result: ${meetsThreshold ? 'PASS' : 'SKIP'}`);
             return meetsThreshold;
         });
 
-        console.log(`🤖 Agent Analysis: Found ${monitoredPostsData.length} active monitored posts.`);
-        console.log(`🤖 Threshold Filter Result: ${monitoredPosts.length} posts meet target (>= ${THRESHOLD_LIKES}L, >= ${THRESHOLD_COMMENTS}C).`);
+        console.log(`🤖 Agent Analysis: Found ${monitoredPostsData.length} records in monitored_posts.`);
+        console.log(`🤖 Filtered Result: ${monitoredPosts.length} posts ready for analysis.`);
 
         if (monitoredPosts.length === 0) {
             return NextResponse.json({

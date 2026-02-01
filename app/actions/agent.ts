@@ -167,3 +167,39 @@ export async function getTopicsForPost(postId: string) {
     const topics = await gemini.extractTopics(comments.map(c => c.content));
     return { topics };
 }
+
+export async function toggleMonitoringAction(postId: string, repoId: string | null) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Unauthorized" };
+
+    try {
+        const { data: existing } = await supabase
+            .from('monitored_posts')
+            .select('id, is_active')
+            .eq('post_id', postId)
+            .maybeSingle();
+
+        if (existing) {
+            const { error } = await supabase
+                .from('monitored_posts')
+                .update({ is_active: !existing.is_active })
+                .eq('id', existing.id);
+            if (error) throw error;
+            return { success: true, active: !existing.is_active };
+        } else {
+            const { error } = await supabase
+                .from('monitored_posts')
+                .insert({
+                    post_id: postId,
+                    repo_id: repoId || 'unknown',
+                    is_active: true
+                });
+            if (error) throw error;
+            return { success: true, active: true };
+        }
+    } catch (e: any) {
+        console.error("Error toggling monitoring:", e);
+        return { error: e.message };
+    }
+}

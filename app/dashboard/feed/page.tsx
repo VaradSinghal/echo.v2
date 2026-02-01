@@ -23,7 +23,8 @@ export default function FeedPage() {
                 profiles:profiles!user_id (username, avatar_url),
                 likes:likes!post_id (user_id),
                 likes_count:likes!post_id (count),
-                comments_count:comments!post_id (count)
+                comments_count:comments!post_id (count),
+                monitored_posts:monitored_posts(is_active)
             `)
             .order('created_at', { ascending: false })
             .limit(20)
@@ -39,7 +40,8 @@ export default function FeedPage() {
                 ...post,
                 likes_count: post.likes_count?.[0]?.count || 0,
                 comments_count: post.comments_count?.[0]?.count || 0,
-                user_has_liked: post.likes.some((l: any) => l.user_id === userId)
+                user_has_liked: post.likes.some((l: any) => l.user_id === userId),
+                is_monitored: post.monitored_posts?.[0]?.is_active ?? false
             }))
             setPosts(processed)
         }
