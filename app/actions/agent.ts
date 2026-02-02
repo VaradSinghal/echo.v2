@@ -48,8 +48,10 @@ export async function createPullRequestAction(taskId: string) {
         const repo = task.monitored_posts.repo_id;
         const branch = `echo-agent-fix-${taskId.substring(0, 8)}`;
 
-        // Helper for logging
+        // Helper for logging and heartbeat
         const addLog = async (msg: string, status: string = 'processing', step?: string) => {
+            console.log(`🤖 [Task ${taskId}] ${step ? `[${step}] ` : ''}${msg}`);
+
             const { data: currentTask } = await supabase.from('agent_tasks').select('logs').eq('id', taskId).single();
             const newLogEntry = { timestamp: new Date().toISOString(), message: msg, status };
             const newLogs = [...(currentTask?.logs || []), newLogEntry];
@@ -57,7 +59,8 @@ export async function createPullRequestAction(taskId: string) {
             await supabase.from('agent_tasks').update({
                 logs: newLogs,
                 status: status === 'failed' ? 'failed' : status === 'completed' ? 'completed' : 'processing',
-                current_step: step || msg
+                current_step: step || msg,
+                last_heartbeat: new Date().toISOString()
             }).eq('id', taskId);
         };
 
@@ -79,33 +82,43 @@ export async function createPullRequestAction(taskId: string) {
         // 3. Plan Implementation (Context Aware)
         await addLog("Planning implementation strategy with Gemini...", "processing", "Planning");
         const targetFiles = await gemini.planImplementation(feedback, fileTree);
+
+        if (!targetFiles || targetFiles.length === 0) {
+            throw new Error("Gemini could not identify any files to modify for this feedback.");
+        }
+
         await addLog(`Identified ${targetFiles.length} files for modification: ${targetFiles.join(", ")}`);
 
         // 4. Fetch File Contents and Generate Patches
         const fileChanges: { path: string, content: string, explanation: string }[] = [];
 
         for (const filePath of targetFiles) {
-            await addLog(`Reading ${filePath} and generating patch...`, "processing", `Patching ${filePath}`);
+            await addLog(`Fetching content for ${filePath}...`, "processing", `Patching ${filePath}`);
 
             try {
                 const currentCode = await github.getFileContent(targetUserId, repo, filePath);
+                await addLog(`Current content for ${filePath} loaded (${currentCode.length} chars).`, "processing", `Patching ${filePath}`);
 
                 // Add context about other files being modified if multi-file
                 const context = targetFiles.length > 1
                     ? `This is part of a multi-file change involving: ${targetFiles.join(", ")}`
                     : "";
 
+                await addLog(`Requesting patch from Gemini for ${filePath}...`, "processing", `Patching ${filePath}`);
                 const aiResult = await gemini.generateCode(feedback, filePath, currentCode, context);
 
                 if (aiResult) {
+                    await addLog(`Patch generated for ${filePath} (Confidence: ${aiResult.confidence_score}).`, "processing", `Patching ${filePath}`);
                     fileChanges.push({
                         path: filePath,
                         content: aiResult.new_code,
                         explanation: aiResult.explanation
                     });
+                } else {
+                    await addLog(`Warning: Gemini failed to generate a patch for ${filePath}.`, "processing", `Patching ${filePath}`);
                 }
             } catch (fileErr: any) {
-                await addLog(`Warning: Skipping ${filePath} due to error: ${fileErr.message}`, "processing");
+                await addLog(`Warning: Skipping ${filePath} due to error: ${fileErr.message}`, "processing", `Patching ${filePath}`);
             }
         }
 

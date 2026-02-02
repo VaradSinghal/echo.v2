@@ -15,6 +15,20 @@ export async function POST(request: Request) {
     const supabase = createServiceRoleClient();
     const gemini = new GeminiService();
 
+    // 0. Cleanup Stale Tasks (Older than 10 minutes without heartbeat)
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { error: cleanupError } = await supabase
+        .from('agent_tasks')
+        .update({
+            status: 'failed',
+            current_step: 'Failed: Agent process timed out (no heartbeat)',
+            logs: [{ timestamp: new Date().toISOString(), message: "Marked as failed due to inactivity (timeout).", status: "failed" }]
+        })
+        .eq('status', 'processing')
+        .lt('last_heartbeat', tenMinutesAgo);
+
+    if (cleanupError) console.error("🤖 Cleanup Error:", cleanupError);
+
     try {
         // 1. Get Active Monitored Posts with engagement metrics
         const { data: monitoredPostsData, error: monitoredError } = await supabase

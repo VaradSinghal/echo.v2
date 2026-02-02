@@ -84,7 +84,12 @@ export class GeminiService {
             JSON structure: { "sentiment_score": number (-1 to 1), "category": "feature_request" | "bug" | "question" | "feedback", "keywords": string[] }
             Comment: "${comment}"`;
 
-            const result = await model.generateContent(prompt);
+            // Add 30s timeout
+            const result = await Promise.race([
+                model.generateContent(prompt),
+                new Promise((_, reject) => setTimeout(() => reject(new Error("Gemini analysis timeout")), 30000))
+            ]) as any;
+
             const text = result.response.text();
             console.log("🤖 Gemini Raw Response:", text);
 
@@ -93,7 +98,7 @@ export class GeminiService {
             return JSON.parse(jsonMatch[0]);
         } catch (error: any) {
             if (error?.status === 429) manager.markRateLimited(apiKey);
-            console.error("Gemini analysis failed:", error);
+            console.error("Gemini analysis failed:", error.message);
             return null;
         }
     }
@@ -119,13 +124,19 @@ export class GeminiService {
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
             const prompt = `Extract top 5 themes from: ${comments.join(", ")}. Return ONLY a JSON array of strings.`;
-            const result = await model.generateContent(prompt);
+
+            // Add 30s timeout
+            const result = await Promise.race([
+                model.generateContent(prompt),
+                new Promise((_, reject) => setTimeout(() => reject(new Error("Gemini topics timeout")), 30000))
+            ]) as any;
+
             const text = result.response.text();
             const jsonMatch = text.match(/\[[\s\S]*\]/);
             if (!jsonMatch) throw new Error("No JSON array found");
             return JSON.parse(jsonMatch[0]);
-        } catch (error) {
-            console.error("Gemini topics failed:", error);
+        } catch (error: any) {
+            console.error("Gemini topics failed:", error.message);
             return [];
         }
     }
@@ -137,13 +148,18 @@ export class GeminiService {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
             const prompt = `Based on this feedback: "${feedback}", and this repository structure:\n${fileTree.join("\n")}\n\nDetermine which files need to be modified. Return ONLY a JSON array of file paths. Example: ["README.md", "src/index.js"]`;
 
-            const result = await model.generateContent(prompt);
+            // Add 45s timeout for planning
+            const result = await Promise.race([
+                model.generateContent(prompt),
+                new Promise((_, reject) => setTimeout(() => reject(new Error("Gemini planning timeout")), 45000))
+            ]) as any;
+
             const text = result.response.text();
             const jsonMatch = text.match(/\[[\s\S]*\]/);
             if (!jsonMatch) return ["README.md"]; // Fallback
             return JSON.parse(jsonMatch[0]);
-        } catch (error) {
-            console.error("Gemini planning failed:", error);
+        } catch (error: any) {
+            console.error("Gemini planning failed:", error.message);
             return ["README.md"];
         }
     }
@@ -158,13 +174,18 @@ export class GeminiService {
             Current code in ${filePath}:\n${currentCode}\n
             Return ONLY JSON with {new_code: string, explanation: string, confidence_score: number}.`;
 
-            const result = await model.generateContent(prompt);
+            // Add 90s timeout for code generation (longer due to size)
+            const result = await Promise.race([
+                model.generateContent(prompt),
+                new Promise((_, reject) => setTimeout(() => reject(new Error("Gemini code gen timeout")), 90000))
+            ]) as any;
+
             const text = result.response.text();
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (!jsonMatch) throw new Error("No JSON found in response");
             return JSON.parse(jsonMatch[0]);
-        } catch (error) {
-            console.error("Gemini code gen failed:", error);
+        } catch (error: any) {
+            console.error("Gemini code gen failed:", error.message);
             return null;
         }
     }

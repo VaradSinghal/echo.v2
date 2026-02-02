@@ -26,6 +26,25 @@ export class GitHubService {
         return this.accessToken;
     }
 
+    private async fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 30000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal
+            });
+            clearTimeout(id);
+            return response;
+        } catch (error: any) {
+            clearTimeout(id);
+            if (error.name === 'AbortError') {
+                throw new Error(`GitHub API timeout: ${url}`);
+            }
+            throw error;
+        }
+    }
+
     async getRepoTree(userId: string, repo: string) {
         const token = await this.getAccessToken(userId);
 
@@ -35,17 +54,17 @@ export class GitHubService {
             fullRepo = repo.split('github.com/')[1].split('/').slice(0, 2).join('/');
         }
 
-        // 1. Get default branch first
-        const repoResponse = await fetch(`https://api.github.com/repos/${fullRepo}`, {
+        // 1. Get default branch first (30s timeout)
+        const repoResponse = await this.fetchWithTimeout(`https://api.github.com/repos/${fullRepo}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (!repoResponse.ok) throw new Error(`Failed to fetch repo info for ${fullRepo}`);
         const { default_branch } = await repoResponse.json();
 
-        // 2. Fetch recursive tree
-        const treeResponse = await fetch(`https://api.github.com/repos/${fullRepo}/git/trees/${default_branch}?recursive=1`, {
+        // 2. Fetch recursive tree (60s timeout for large repos)
+        const treeResponse = await this.fetchWithTimeout(`https://api.github.com/repos/${fullRepo}/git/trees/${default_branch}?recursive=1`, {
             headers: { Authorization: `Bearer ${token}` }
-        });
+        }, 60000);
         if (!treeResponse.ok) throw new Error("Failed to fetch repo tree");
         const data = await treeResponse.json();
 
@@ -64,9 +83,9 @@ export class GitHubService {
             fullRepo = repo.split('github.com/')[1].split('/').slice(0, 2).join('/');
         }
 
-        const response = await fetch(`https://api.github.com/repos/${fullRepo}/contents/${path}`, {
+        const response = await this.fetchWithTimeout(`https://api.github.com/repos/${fullRepo}/contents/${path}`, {
             headers: { Authorization: `Bearer ${token}` }
-        });
+        }, 45000);
         if (!response.ok) throw new Error(`Failed to fetch file: ${path} from ${fullRepo}`);
         const data = await response.json();
         return Buffer.from(data.content, 'base64').toString('utf8');
@@ -83,7 +102,7 @@ export class GitHubService {
         const [owner, name] = fullRepo.split('/');
 
         // 1. Get default branch SHA
-        const repoResponse = await fetch(`https://api.github.com/repos/${fullRepo}`, {
+        const repoResponse = await this.fetchWithTimeout(`https://api.github.com/repos/${fullRepo}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (!repoResponse.ok) {
@@ -93,7 +112,7 @@ export class GitHubService {
         const repoInfo = await repoResponse.json();
         const defaultBranch = repoInfo.default_branch;
 
-        const refResponse = await fetch(`https://api.github.com/repos/${fullRepo}/git/refs/heads/${defaultBranch}`, {
+        const refResponse = await this.fetchWithTimeout(`https://api.github.com/repos/${fullRepo}/git/refs/heads/${defaultBranch}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (!refResponse.ok) {
@@ -104,7 +123,7 @@ export class GitHubService {
         const baseSha = refInfo.object.sha;
 
         // 2. Create new branch
-        const branchResponse = await fetch(`https://api.github.com/repos/${fullRepo}/git/refs`, {
+        const branchResponse = await this.fetchWithTimeout(`https://api.github.com/repos/${fullRepo}/git/refs`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha })
@@ -116,12 +135,12 @@ export class GitHubService {
 
         // 3. Create blob/commit for each file
         for (const file of files) {
-            const contentResponse = await fetch(`https://api.github.com/repos/${fullRepo}/contents/${file.path}?ref=${branch}`, {
+            const contentResponse = await this.fetchWithTimeout(`https://api.github.com/repos/${fullRepo}/contents/${file.path}?ref=${branch}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const currentFile = await contentResponse.json();
 
-            const putResponse = await fetch(`https://api.github.com/repos/${fullRepo}/contents/${file.path}`, {
+            const putResponse = await this.fetchWithTimeout(`https://api.github.com/repos/${fullRepo}/contents/${file.path}`, {
                 method: 'PUT',
                 headers: { Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
@@ -130,7 +149,7 @@ export class GitHubService {
                     branch: branch,
                     sha: currentFile.sha || undefined
                 })
-            });
+            }, 60000);
             if (!putResponse.ok) {
                 const err = await putResponse.json();
                 throw new Error(`File Update Failed: ${putResponse.status} - ${JSON.stringify(err)}`);
@@ -138,7 +157,7 @@ export class GitHubService {
         }
 
         // 4. Create PR
-        const prResponse = await fetch(`https://api.github.com/repos/${fullRepo}/pulls`, {
+        const prResponse = await this.fetchWithTimeout(`https://api.github.com/repos/${fullRepo}/pulls`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             body: JSON.stringify({
@@ -147,7 +166,7 @@ export class GitHubService {
                 head: branch,
                 base: defaultBranch
             })
-        });
+        }, 45000);
         if (!prResponse.ok) {
             const err = await prResponse.json();
             throw new Error(`PR Creation Failed: ${prResponse.status} - ${JSON.stringify(err)}`);
