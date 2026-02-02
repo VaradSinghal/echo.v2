@@ -14,11 +14,20 @@ export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
     const supabase = createClient()
 
     const fetchData = React.useCallback(async () => {
-        if (!selectedRepo) return
+        if (!selectedRepo) {
+            console.log("🤖 AnalyticsDashboard: No repo selected, skipping fetch.");
+            setLoading(false);
+            return;
+        }
 
+        console.log(`🤖 AnalyticsDashboard: Fetching data for ${selectedRepo}...`);
         // 1. Get Repo Posts from monitored_posts
-        const { data: repoPosts } = await supabase.from('monitored_posts').select('post_id').eq('repo_id', selectedRepo)
+        const { data: repoPosts, error: postsErr } = await supabase.from('monitored_posts').select('post_id').eq('repo_id', selectedRepo)
+
+        if (postsErr) console.error("🤖 AnalyticsDashboard: Posts Fetch Error:", postsErr);
+
         const postIds = (repoPosts || []).map(p => p.post_id)
+        console.log(`🤖 AnalyticsDashboard: Found ${postIds.length} posts for this repo.`);
 
         if (postIds.length === 0) {
             setStats({ totalComments: 0, prsOpened: 0, issuesOpened: 0 })

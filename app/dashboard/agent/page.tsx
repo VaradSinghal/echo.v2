@@ -19,19 +19,27 @@ export default function AgentDashboard() {
 
     React.useEffect(() => {
         const fetchRepos = async () => {
-            const { data } = await supabase
+            console.log("🤖 AgentDashboard: Fetching monitored repos...");
+            const { data, error } = await supabase
                 .from('monitored_posts')
                 .select('id, repo_id')
                 .eq('is_active', true)
+
+            if (error) console.error("🤖 AgentDashboard: Fetch Error:", error);
+
             if (data && data.length > 0) {
+                console.log(`🤖 AgentDashboard: Found ${data.length} monitored records.`, data);
                 // Deduplicate by repo_id
                 const uniqueRepos = Array.from(new Set(data.map(r => r.repo_id))).map(repoId => {
                     return data.find(r => r.repo_id === repoId)
                 })
                 setMonitoredRepos(uniqueRepos)
                 if (uniqueRepos[0]) {
+                    console.log("🤖 AgentDashboard: Setting default repo:", uniqueRepos[0].repo_id);
                     setSelectedRepo(uniqueRepos[0].repo_id)
                 }
+            } else {
+                console.log("🤖 AgentDashboard: No monitored repos found.");
             }
         }
         fetchRepos()
@@ -106,8 +114,11 @@ export default function AgentDashboard() {
                     </div>
                 ) : (
                     <div className="border-2 border-dashed border-black/10 p-24 text-center">
-                        <p className="text-xs font-black uppercase tracking-widest text-black/10">
+                        <p className="text-xs font-black uppercase tracking-widest text-black/10 mb-4">
                             Initialize a repository from the feed to start monitoring.
+                        </p>
+                        <p className="text-[10px] font-bold text-black/20 uppercase">
+                            (Found {monitoredRepos.length} active monitors)
                         </p>
                     </div>
                 )}

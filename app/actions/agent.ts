@@ -241,10 +241,15 @@ export async function toggleMonitoringAction(postId: string, repoId: string | nu
             .eq('post_id', postId)
             .maybeSingle();
 
+        const cleanRepoId = repoId?.replace('https://github.com/', '') || 'unknown';
+
         if (existing) {
             const { error } = await supabase
                 .from('monitored_posts')
-                .update({ is_active: !existing.is_active })
+                .update({
+                    is_active: !existing.is_active,
+                    repo_id: cleanRepoId // Ensure it's clean on update too
+                })
                 .eq('id', existing.id);
             if (error) throw error;
             return { success: true, active: !existing.is_active };
@@ -253,7 +258,7 @@ export async function toggleMonitoringAction(postId: string, repoId: string | nu
                 .from('monitored_posts')
                 .insert({
                     post_id: postId,
-                    repo_id: repoId || 'unknown',
+                    repo_id: cleanRepoId,
                     is_active: true
                 });
             if (error) throw error;
