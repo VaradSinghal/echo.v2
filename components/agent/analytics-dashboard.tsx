@@ -134,12 +134,12 @@ export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
     return (
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
                 {metrics.map((m, i) => (
-                    <div key={i} className="border-4 border-black bg-white p-8 shadow-brutalist relative overflow-hidden group">
-                        <m.icon className="absolute -right-4 -top-4 size-24 text-black/5 rotate-12 transition-transform group-hover:rotate-0" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40 mb-2 block">{m.label}</span>
-                        <p className="text-6xl font-black text-black leading-none">{m.value}</p>
+                    <div key={i} className="border-4 border-black bg-white p-6 md:p-8 shadow-brutalist relative overflow-hidden group">
+                        <m.icon className="absolute -right-4 -top-4 size-16 md:size-24 text-black/5 rotate-12 transition-transform group-hover:rotate-0" />
+                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-black/40 mb-2 block">{m.label}</span>
+                        <p className="text-4xl md:text-6xl font-black text-black leading-none">{m.value}</p>
                     </div>
                 ))}
             </div>
@@ -173,18 +173,18 @@ export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
                             <div
                                 key={s.id}
                                 className={cn(
-                                    "p-8 border-black md:border-r-2 last:border-r-0 border-b-2 md:border-b-0 transition-all duration-500",
+                                    "p-6 md:p-8 border-black md:border-r-2 last:border-r-0 border-b-2 md:border-b-0 transition-all duration-500",
                                     isCurrent ? "bg-black text-white" : isPast ? "bg-neutral-50 text-black/40" : "opacity-30 bg-white"
                                 )}
                             >
                                 <div className="flex items-center gap-3 mb-4">
-                                    <s.icon className={cn("size-5", isCurrent && (s.id === "coding" || s.id === "monitoring") && "animate-spin")} />
-                                    <span className="text-xs font-black uppercase tracking-widest">
+                                    <s.icon className={cn("size-4 md:size-5", isCurrent && (s.id === "coding" || s.id === "monitoring") && "animate-spin")} />
+                                    <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">
                                         {s.label}
                                         {isPast && s.id !== "pr_dispatch" && <CheckCircle className="inline ml-2 size-3 text-green-500" />}
                                     </span>
                                 </div>
-                                <p className={cn("text-[10px] font-bold uppercase tracking-tight leading-relaxed", isCurrent ? "text-white/60" : "text-black/40")}>
+                                <p className={cn("text-[9px] md:text-[10px] font-bold uppercase tracking-tight leading-relaxed", isCurrent ? "text-white/60" : "text-black/40")}>
                                     {s.description}
                                 </p>
                                 {isCurrent && (

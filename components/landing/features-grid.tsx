@@ -9,8 +9,8 @@ export function FeaturesGrid() {
                     <div className="w-24 h-2 bg-black mt-4"></div>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-0 border border-black">
-                    <div className="p-12 bg-white border-r border-black last:border-r-0">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border-t border-l border-black">
+                    <div className="p-8 md:p-12 bg-white border-b border-r border-black">
                         <div className="text-black mb-8">
                             <span className="material-symbols-outlined text-5xl">upload_file</span>
                         </div>
@@ -20,7 +20,7 @@ export function FeaturesGrid() {
                         </p>
                     </div>
 
-                    <div className="p-12 bg-white border-r border-black last:border-r-0">
+                    <div className="p-8 md:p-12 bg-white border-b border-r border-black last:border-b-0 md:last:border-b">
                         <div className="text-black mb-8">
                             <span className="material-symbols-outlined text-5xl">forum</span>
                         </div>
@@ -30,7 +30,7 @@ export function FeaturesGrid() {
                         </p>
                     </div>
 
-                    <div className="p-12 bg-white">
+                    <div className="p-8 md:p-12 bg-white border-b border-r border-black last:border-b-0">
                         <div className="text-black mb-8">
                             <span className="material-symbols-outlined text-5xl">smart_toy</span>
                         </div>

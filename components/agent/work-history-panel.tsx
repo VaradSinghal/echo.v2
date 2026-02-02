@@ -143,23 +143,23 @@ export function WorkHistoryPanel({ selectedRepo }: { selectedRepo: string }) {
                                             {item.generated_code?.agent_tasks?.monitored_posts?.repo_id.split('/').pop() || "Unknown Repository"}
                                         </h4>
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-[8px] font-black uppercase tracking-widest text-black/30">Triggered By:</span>
-                                            <span className="text-[10px] font-bold text-black/60 italic truncate max-w-[300px]">
+                                            <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-black/30">Triggered By:</span>
+                                            <span className="text-[9px] md:text-[10px] font-bold text-black/60 italic truncate max-w-[150px] sm:max-w-[300px]">
                                                 {item.generated_code?.agent_tasks?.monitored_posts?.posts?.title}
                                             </span>
                                         </div>
-                                        <p className="text-xs font-bold text-black/60 line-clamp-2 leading-relaxed">
+                                        <p className="text-[10px] md:text-xs font-bold text-black/60 line-clamp-2 leading-relaxed">
                                             {item.generated_code?.explanation || "Automatic patch generated based on community feedback signals."}
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center md:flex-col justify-end gap-2">
+                                <div className="flex items-center lg:flex-col justify-end gap-2 w-full lg:w-auto mt-4 lg:mt-0">
                                     <a
                                         href={item.pr_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="btn-solid text-[10px] px-4 py-2 flex items-center gap-2 whitespace-nowrap"
+                                        className="btn-solid text-[8px] md:text-[10px] px-6 py-3 w-full lg:w-auto flex items-center justify-center gap-2 whitespace-nowrap"
                                     >
                                         VIEW ON GITHUB
                                         <ExternalLink className="size-3" />

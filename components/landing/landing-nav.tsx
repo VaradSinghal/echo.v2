@@ -24,12 +24,18 @@ export function LandingNav() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <form action={signInWithGithub}>
+                        <form action={signInWithGithub} className="hidden sm:block">
                             <button type="submit" className="bg-black text-white px-6 py-2 text-xs font-black tracking-widest uppercase flex items-center gap-2 hover:bg-neutral-800 transition-colors">
                                 <Github className="w-4 h-4" />
-                                Continue with GitHub
+                                <span className="hidden lg:inline">Continue with GitHub</span>
+                                <span className="lg:hidden">GitHub</span>
                             </button>
                         </form>
+
+                        {/* Mobile Menu Trigger */}
+                        <button className="md:hidden border-2 border-black p-1 hover:bg-black hover:text-white transition-colors">
+                            <span className="material-symbols-outlined text-xl">menu</span>
+                        </button>
                     </div>
                 </div>
             </div>

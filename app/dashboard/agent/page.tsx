@@ -49,29 +49,29 @@ export default function AgentDashboard() {
     }
 
     return (
-        <div className="flex flex-col gap-12 pt-4">
+        <div className="flex flex-col gap-8 md:gap-12 pt-4">
             {/* Minimalist Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b-2 border-black pb-8">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b-2 border-black pb-8">
                 <div>
                     <div className="inline-flex items-center gap-2 mb-4">
-                        <Play className="h-4 w-4 fill-black" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black">Agent Subsystem</span>
+                        <Play className="h-3 w-3 md:h-4 md:w-4 fill-black" />
+                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-black">Agent Subsystem</span>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-black tracking-tighter uppercase text-black">Mission Control</h1>
+                    <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase text-black">Mission Control</h1>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
                     <div className="relative w-full sm:w-[300px]">
-                        <label className="absolute -top-6 left-0 text-[10px] font-black uppercase tracking-widest text-black/30">Select Active Node</label>
+                        <label className="absolute -top-6 left-0 text-[8px] md:text-[10px] font-black uppercase tracking-widest text-black/30">Select Active Node</label>
                         <select
                             value={selectedRepo}
                             onChange={(e) => setSelectedRepo(e.target.value)}
-                            className="w-full border-2 border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-widest focus:outline-none appearance-none rounded-none shadow-brutalist active:translate-y-[2px] active:shadow-none"
+                            className="w-full border-2 border-black bg-white px-4 py-3 text-[10px] md:text-xs font-black uppercase tracking-widest focus:outline-none appearance-none rounded-none shadow-brutalist active:translate-y-[2px] active:shadow-none"
                         >
                             {monitoredRepos.length === 0 && <option value="">NO ACTIVE REPOS</option>}
                             {monitoredRepos.map(repo => (
                                 <option key={repo.id} value={repo.repo_id}>
-                                    {repo.repo_id.toUpperCase()}
+                                    {repo.repo_id.split('/').pop()?.toUpperCase()}
                                 </option>
                             ))}
                         </select>
@@ -80,26 +80,26 @@ export default function AgentDashboard() {
                     <button
                         onClick={triggerAnalysis}
                         disabled={loading || monitoredRepos.length === 0}
-                        className="btn-solid text-[10px] tracking-[0.2em] px-8 py-3 w-full sm:w-auto flex items-center justify-center gap-3"
+                        className="btn-solid text-[8px] md:text-[10px] tracking-[0.2em] px-6 md:px-8 py-3 w-full sm:w-auto flex items-center justify-center gap-3"
                     >
-                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-white" />}
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-3 w-3 md:h-4 md:w-4 fill-white" />}
                         SYNC AGENT
                     </button>
                 </div>
             </div>
 
             {/* Focused Content Area */}
-            <div className="max-w-6xl mx-auto w-full">
+            <div className="max-w-6xl mx-auto w-full px-0 sm:px-4">
                 {selectedRepo ? (
-                    <div className="space-y-24">
+                    <div className="space-y-16 md:space-y-24">
                         <AnalyticsDashboard selectedRepo={selectedRepo} />
 
-                        <div className="space-y-8">
-                            <h2 className="text-2xl font-black uppercase tracking-tighter">Live Operations</h2>
+                        <div className="space-y-6 md:space-y-8">
+                            <h2 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Live Operations</h2>
                             <MonitoringPanel selectedRepo={selectedRepo} />
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
                             <PRReviewPanel selectedRepo={selectedRepo} />
                             <WorkHistoryPanel selectedRepo={selectedRepo} />
                         </div>

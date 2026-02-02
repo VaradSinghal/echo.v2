@@ -105,25 +105,27 @@ export function PRReviewPanel({ selectedRepo }: { selectedRepo: string }) {
                                         </p>
                                     </div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                                         <button
                                             disabled={task.status !== 'pending' || !!processing}
                                             onClick={() => handleApprove(task.id)}
-                                            className="flex-1 flex items-center justify-center gap-2 bg-black text-white px-3 py-2 rounded text-xs font-medium hover:bg-gray-800 disabled:opacity-50"
+                                            className="flex-1 flex items-center justify-center gap-2 bg-black text-white px-4 py-3 sm:py-2 rounded text-[10px] md:text-xs font-black uppercase tracking-widest hover:bg-gray-800 disabled:opacity-50"
                                         >
                                             {processing === task.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
                                             Approve & Generate PR
                                         </button>
-                                        <button
-                                            disabled={task.status !== 'pending' || !!processing}
-                                            className="flex items-center justify-center gap-2 border px-3 py-2 rounded text-xs font-medium hover:bg-accent disabled:opacity-50"
-                                        >
-                                            <X className="h-3 w-3" />
-                                            Dismiss
-                                        </button>
-                                        <button className="p-2 border rounded hover:bg-accent transition-colors">
-                                            <Github className="h-4 w-4" />
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                disabled={task.status !== 'pending' || !!processing}
+                                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 border-2 border-black px-4 py-3 sm:py-2 rounded text-[10px] md:text-xs font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all disabled:opacity-50"
+                                            >
+                                                <X className="h-3 w-3" />
+                                                Dismiss
+                                            </button>
+                                            <button className="p-3 sm:p-2 border-2 border-black rounded hover:bg-black hover:text-white transition-all">
+                                                <Github className="h-4 w-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
