@@ -16,9 +16,9 @@ export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
     const fetchData = React.useCallback(async () => {
         if (!selectedRepo) return
 
-        // 1. Get Repo Posts
-        const { data: repoPosts } = await supabase.from('posts').select('id').eq('repo_link', selectedRepo)
-        const postIds = (repoPosts || []).map(p => p.id)
+        // 1. Get Repo Posts from monitored_posts
+        const { data: repoPosts } = await supabase.from('monitored_posts').select('post_id').eq('repo_id', selectedRepo)
+        const postIds = (repoPosts || []).map(p => p.post_id)
 
         if (postIds.length === 0) {
             setStats({ totalComments: 0, prsOpened: 0, issuesOpened: 0 })

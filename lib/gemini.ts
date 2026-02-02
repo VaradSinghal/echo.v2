@@ -130,12 +130,34 @@ export class GeminiService {
         }
     }
 
-    async generateCode(feedback: string, filePath: string, currentCode: string) {
+    async planImplementation(feedback: string, fileTree: string[]) {
         const apiKey = manager.getNextKey();
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-            const prompt = `Update ${filePath} for feedback: ${feedback}. Current code:\n${currentCode}\nReturn ONLY JSON with {new_code: string, explanation: string, confidence_score: number}.`;
+            const prompt = `Based on this feedback: "${feedback}", and this repository structure:\n${fileTree.join("\n")}\n\nDetermine which files need to be modified. Return ONLY a JSON array of file paths. Example: ["README.md", "src/index.js"]`;
+
+            const result = await model.generateContent(prompt);
+            const text = result.response.text();
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            if (!jsonMatch) return ["README.md"]; // Fallback
+            return JSON.parse(jsonMatch[0]);
+        } catch (error) {
+            console.error("Gemini planning failed:", error);
+            return ["README.md"];
+        }
+    }
+
+    async generateCode(feedback: string, filePath: string, currentCode: string, context?: string) {
+        const apiKey = manager.getNextKey();
+        try {
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const prompt = `Update ${filePath} for feedback: "${feedback}". 
+            ${context ? `Background Context about repo: ${context}` : ''}
+            Current code in ${filePath}:\n${currentCode}\n
+            Return ONLY JSON with {new_code: string, explanation: string, confidence_score: number}.`;
+
             const result = await model.generateContent(prompt);
             const text = result.response.text();
             const jsonMatch = text.match(/\{[\s\S]*\}/);

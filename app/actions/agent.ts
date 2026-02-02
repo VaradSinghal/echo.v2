@@ -51,18 +51,23 @@ export async function createPullRequestAction(taskId: string) {
         // Helper for logging
         const addLog = async (msg: string, status: string = 'processing', step?: string) => {
             const { data: currentTask } = await supabase.from('agent_tasks').select('logs').eq('id', taskId).single();
-            const newLogs = [...(currentTask?.logs || []), { timestamp: new Date().toISOString(), message: msg }];
+            const newLogEntry = { timestamp: new Date().toISOString(), message: msg, status };
+            const newLogs = [...(currentTask?.logs || []), newLogEntry];
+
             await supabase.from('agent_tasks').update({
                 logs: newLogs,
-                status: status,
+                status: status === 'failed' ? 'failed' : status === 'completed' ? 'completed' : 'processing',
                 current_step: step || msg
             }).eq('id', taskId);
         };
 
-        // 1. Logic for Code Generation
-        await addLog("Fetching community sentiment analysis...", "processing", "Synthesizing");
+        // 1. Fetch Repository Structure (Virtual Clone)
+        await addLog(`Discovering repo structure for ${repo}...`, "processing", "Analyzing Repo");
+        const fileTree = await github.getRepoTree(targetUserId, repo);
+        await addLog(`Successfully mapped ${fileTree.length} files in repository.`, "processing", "Context Loaded");
 
-        // Fetch the comment content that triggered this
+
+        // 2. Fetch the feedback context
         const { data: comment } = await supabase
             .from('comments')
             .select('content')
@@ -70,78 +75,105 @@ export async function createPullRequestAction(taskId: string) {
             .single();
 
         const feedback = comment?.content || "Community request for improvements.";
-        const filePath = "README.md"; // Default for demo
 
-        // Fetch current file content (In a real app, this would be a GitHub API call)
-        // For the demo, we'll use a standard template if we can't fetch it easily
-        const currentCode = "# Echo Project\n\nThis is a placeholder for the repository documentation.";
+        // 3. Plan Implementation (Context Aware)
+        await addLog("Planning implementation strategy with Gemini...", "processing", "Planning");
+        const targetFiles = await gemini.planImplementation(feedback, fileTree);
+        await addLog(`Identified ${targetFiles.length} files for modification: ${targetFiles.join(", ")}`);
 
-        await addLog("Generating optimized code patch with Gemini-2.5-flash...");
-        const aiResult = await gemini.generateCode(feedback, filePath, currentCode);
+        // 4. Fetch File Contents and Generate Patches
+        const fileChanges: { path: string, content: string, explanation: string }[] = [];
 
-        if (!aiResult) {
-            await addLog("Code generation failed.", "failed");
-            throw new Error("AI Code Generation failed");
+        for (const filePath of targetFiles) {
+            await addLog(`Reading ${filePath} and generating patch...`, "processing", `Patching ${filePath}`);
+
+            try {
+                const currentCode = await github.getFileContent(targetUserId, repo, filePath);
+
+                // Add context about other files being modified if multi-file
+                const context = targetFiles.length > 1
+                    ? `This is part of a multi-file change involving: ${targetFiles.join(", ")}`
+                    : "";
+
+                const aiResult = await gemini.generateCode(feedback, filePath, currentCode, context);
+
+                if (aiResult) {
+                    fileChanges.push({
+                        path: filePath,
+                        content: aiResult.new_code,
+                        explanation: aiResult.explanation
+                    });
+                }
+            } catch (fileErr: any) {
+                await addLog(`Warning: Skipping ${filePath} due to error: ${fileErr.message}`, "processing");
+            }
         }
 
-        await addLog("Code synthesis complete. Preparing GitHub dispatch...", "processing", "Dispatching");
+        if (fileChanges.length === 0) {
+            throw new Error("No valid patches were generated for any of the target files.");
+        }
 
-        // 2. Save Generated Code
-        const { data: generatedCode, error: genError } = await supabase
-            .from('generated_code')
-            .insert({
+        await addLog(`Synthesized ${fileChanges.length} patches. Preparing GitHub dispatch...`, "processing", "Dispatching");
+
+        // 5. Save Generated Code for first file (backward compat for schema) + Log all
+        for (const change of fileChanges) {
+            await supabase.from('generated_code').insert({
                 task_id: taskId,
-                file_path: filePath,
-                old_code: currentCode,
-                new_code: aiResult.new_code,
-                explanation: aiResult.explanation,
+                file_path: change.path,
+                new_code: change.content,
+                explanation: change.explanation,
                 status: 'ready'
-            })
-            .select()
-            .single();
+            });
+        }
 
-        if (genError) throw new Error(`Failed to save generated code: ${genError.message}`);
+        // 6. Create PR via GitHub
+        const prTitle = `Agent: ${fileChanges[0].explanation.substring(0, 50)}...`;
+        const prBody = `This PR was automatically generated by the Echo Agent based on community feedback.\n\n### Feedback Context\n> ${feedback}\n\n### Changes Summary\n${fileChanges.map(c => `- **${c.path}**: ${c.explanation}`).join("\n")}`;
 
-        // 3. Create PR via GitHub
-        await addLog(`Initializing PR in ${repo} on branch ${branch}...`);
+        await addLog(`Creating PR in ${repo} on branch ${branch}...`, "processing", "Creating PR");
         const pr = await github.createPR(
             targetUserId,
             repo,
             branch,
-            "Agent: " + (aiResult.explanation.substring(0, 50) + "..."),
-            `This PR was automatically generated by the Echo Agent based on community feedback.\n\n### Feedback Context\n> ${feedback}\n\n### AI Explanation\n${aiResult.explanation}`,
-            [{ path: filePath, content: aiResult.new_code }]
+            prTitle,
+            prBody,
+            fileChanges.map(c => ({ path: c.path, content: c.content }))
         );
 
-        await addLog(`PR #${pr.number} successfully dispatched to GitHub!`, "completed", "Completed");
+        await addLog(`PR #${pr.number} successfully dispatched!`, "completed", "Completed");
 
-        // 4. Update Task & Log PR
+        // 7. Update Task & Log PR
         await supabase.from('agent_tasks').update({
             status: 'completed',
             current_step: 'PR Link: ' + pr.html_url
         }).eq('id', taskId);
 
-        await supabase.from('github_prs').insert({
-            generated_code_id: generatedCode.id,
-            pr_number: pr.number,
-            pr_url: pr.html_url,
-            status: 'open'
-        });
+        // Map the PR to the first generated code record for simple lookup
+        const { data: firstCode } = await supabase.from('generated_code').select('id').eq('task_id', taskId).limit(1).single();
+        if (firstCode) {
+            await supabase.from('github_prs').insert({
+                generated_code_id: firstCode.id,
+                pr_number: pr.number,
+                pr_url: pr.html_url,
+                status: 'open'
+            });
+        }
 
         return { success: true, url: pr.html_url };
     } catch (e: any) {
         console.error("❌ Agent Action Error:", e.message);
         const { data: currentTask } = await supabase.from('agent_tasks').select('logs').eq('id', taskId).single();
-        const failLogs = [...(currentTask?.logs || []), { timestamp: new Date().toISOString(), message: `ERROR: ${e.message}` }];
+        const failLogs = [...(currentTask?.logs || []), { timestamp: new Date().toISOString(), message: `ERROR: ${e.message}`, status: 'failed' }];
 
         await supabase.from('agent_tasks').update({
             status: 'failed',
             logs: failLogs,
-            current_step: 'Initialization Failed',
+            current_step: 'Failed: ' + e.message,
             result: { ...task.result, error: e.message }
         }).eq('id', taskId);
         return { error: e.message };
     }
+
 }
 
 export async function semanticSearch(query: string, repoId: string = "all", threshold: number = 0.7) {

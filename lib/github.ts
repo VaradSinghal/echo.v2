@@ -26,12 +26,64 @@ export class GitHubService {
         return this.accessToken;
     }
 
+    async getRepoTree(userId: string, repo: string) {
+        const token = await this.getAccessToken(userId);
+
+        // Handle full URL or slug
+        let fullRepo = repo;
+        if (repo.includes('github.com/')) {
+            fullRepo = repo.split('github.com/')[1].split('/').slice(0, 2).join('/');
+        }
+
+        // 1. Get default branch first
+        const repoResponse = await fetch(`https://api.github.com/repos/${fullRepo}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!repoResponse.ok) throw new Error(`Failed to fetch repo info for ${fullRepo}`);
+        const { default_branch } = await repoResponse.json();
+
+        // 2. Fetch recursive tree
+        const treeResponse = await fetch(`https://api.github.com/repos/${fullRepo}/git/trees/${default_branch}?recursive=1`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!treeResponse.ok) throw new Error("Failed to fetch repo tree");
+        const data = await treeResponse.json();
+
+        // Filter for files only, return paths
+        return data.tree
+            .filter((item: any) => item.type === 'blob')
+            .map((item: any) => item.path);
+    }
+
+    async getFileContent(userId: string, repo: string, path: string) {
+        const token = await this.getAccessToken(userId);
+
+        // Handle full URL or slug
+        let fullRepo = repo;
+        if (repo.includes('github.com/')) {
+            fullRepo = repo.split('github.com/')[1].split('/').slice(0, 2).join('/');
+        }
+
+        const response = await fetch(`https://api.github.com/repos/${fullRepo}/contents/${path}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error(`Failed to fetch file: ${path} from ${fullRepo}`);
+        const data = await response.json();
+        return Buffer.from(data.content, 'base64').toString('utf8');
+    }
+
     async createPR(userId: string, repo: string, branch: string, title: string, body: string, files: { path: string, content: string }[]) {
         const token = await this.getAccessToken(userId);
-        const [owner, name] = repo.split('/');
+
+        // Handle full URL or slug
+        let fullRepo = repo;
+        if (repo.includes('github.com/')) {
+            fullRepo = repo.split('github.com/')[1].split('/').slice(0, 2).join('/');
+        }
+        const [owner, name] = fullRepo.split('/');
 
         // 1. Get default branch SHA
-        const repoResponse = await fetch(`https://api.github.com/repos/${repo}`, {
+        const repoResponse = await fetch(`https://api.github.com/repos/${fullRepo}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (!repoResponse.ok) {
@@ -41,7 +93,7 @@ export class GitHubService {
         const repoInfo = await repoResponse.json();
         const defaultBranch = repoInfo.default_branch;
 
-        const refResponse = await fetch(`https://api.github.com/repos/${repo}/git/refs/heads/${defaultBranch}`, {
+        const refResponse = await fetch(`https://api.github.com/repos/${fullRepo}/git/refs/heads/${defaultBranch}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (!refResponse.ok) {
@@ -52,7 +104,7 @@ export class GitHubService {
         const baseSha = refInfo.object.sha;
 
         // 2. Create new branch
-        const branchResponse = await fetch(`https://api.github.com/repos/${repo}/git/refs`, {
+        const branchResponse = await fetch(`https://api.github.com/repos/${fullRepo}/git/refs`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha })
@@ -64,12 +116,12 @@ export class GitHubService {
 
         // 3. Create blob/commit for each file
         for (const file of files) {
-            const contentResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${file.path}?ref=${branch}`, {
+            const contentResponse = await fetch(`https://api.github.com/repos/${fullRepo}/contents/${file.path}?ref=${branch}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const currentFile = await contentResponse.json();
 
-            const putResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${file.path}`, {
+            const putResponse = await fetch(`https://api.github.com/repos/${fullRepo}/contents/${file.path}`, {
                 method: 'PUT',
                 headers: { Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
@@ -86,7 +138,7 @@ export class GitHubService {
         }
 
         // 4. Create PR
-        const prResponse = await fetch(`https://api.github.com/repos/${repo}/pulls`, {
+        const prResponse = await fetch(`https://api.github.com/repos/${fullRepo}/pulls`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             body: JSON.stringify({

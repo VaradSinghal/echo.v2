@@ -24,8 +24,14 @@ export default function AgentDashboard() {
                 .select('id, repo_id')
                 .eq('is_active', true)
             if (data && data.length > 0) {
-                setMonitoredRepos(data)
-                setSelectedRepo(data[0].repo_id) // Default to first repo
+                // Deduplicate by repo_id
+                const uniqueRepos = Array.from(new Set(data.map(r => r.repo_id))).map(repoId => {
+                    return data.find(r => r.repo_id === repoId)
+                })
+                setMonitoredRepos(uniqueRepos)
+                if (uniqueRepos[0]) {
+                    setSelectedRepo(uniqueRepos[0].repo_id)
+                }
             }
         }
         fetchRepos()
@@ -87,6 +93,11 @@ export default function AgentDashboard() {
                 {selectedRepo ? (
                     <div className="space-y-24">
                         <AnalyticsDashboard selectedRepo={selectedRepo} />
+
+                        <div className="space-y-8">
+                            <h2 className="text-2xl font-black uppercase tracking-tighter">Live Operations</h2>
+                            <MonitoringPanel selectedRepo={selectedRepo} />
+                        </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                             <PRReviewPanel selectedRepo={selectedRepo} />

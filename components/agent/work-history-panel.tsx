@@ -16,6 +16,9 @@ interface WorkHistoryItem {
         agent_tasks: {
             monitored_posts: {
                 repo_id: string
+                posts: {
+                    title: string
+                }
             }
         }
     }
@@ -41,7 +44,10 @@ export function WorkHistoryPanel({ selectedRepo }: { selectedRepo: string }) {
                         explanation,
                         agent_tasks!inner (
                             monitored_posts!inner (
-                                repo_id
+                                repo_id,
+                                posts!inner (
+                                    title
+                                )
                             )
                         )
                     )
@@ -134,8 +140,14 @@ export function WorkHistoryPanel({ selectedRepo }: { selectedRepo: string }) {
 
                                     <div>
                                         <h4 className="text-sm font-black uppercase tracking-tight text-black mb-1">
-                                            {item.generated_code?.agent_tasks?.monitored_posts?.repo_id || "Unknown Repository"}
+                                            {item.generated_code?.agent_tasks?.monitored_posts?.repo_id.split('/').pop() || "Unknown Repository"}
                                         </h4>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-black/30">Triggered By:</span>
+                                            <span className="text-[10px] font-bold text-black/60 italic truncate max-w-[300px]">
+                                                {item.generated_code?.agent_tasks?.monitored_posts?.posts?.title}
+                                            </span>
+                                        </div>
                                         <p className="text-xs font-bold text-black/60 line-clamp-2 leading-relaxed">
                                             {item.generated_code?.explanation || "Automatic patch generated based on community feedback signals."}
                                         </p>
