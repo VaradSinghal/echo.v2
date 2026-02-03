@@ -172,6 +172,9 @@ export async function createPullRequestAction(taskId: string) {
             });
         }
 
+        // 8. Disable monitoring for this post (User requirement)
+        await supabase.from('monitored_posts').update({ is_active: false }).eq('id', task.monitored_post_id);
+
         return { success: true, url: pr.html_url };
     } catch (e: any) {
         console.error("❌ Agent Action Error:", e.message);

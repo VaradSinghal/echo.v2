@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/client"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, TerminalSquare, X } from "lucide-react"
+import { Loader2, TerminalSquare, X, Database } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AgentTerminal } from "./agent-terminal"
 
@@ -75,13 +75,20 @@ export function MonitoringPanel({ selectedRepo }: { selectedRepo: string }) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Monitored Repos */}
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div className="border-4 border-black bg-white shadow-brutalist overflow-hidden">
+                <div className="border-b-4 border-black bg-black p-4">
+                    <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white flex items-center gap-3">
+                        <Database className="size-4" />
+                        Global Node status
+                    </h3>
+                </div>
                 <div className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Monitored Repositories</h3>
                     {monitoredPosts.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No posts are currently being monitored.</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-black/20 text-center py-10">
+                            Zero nodes active in current sector.
+                        </p>
                     ) : (
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             {Object.entries(
                                 monitoredPosts.reduce((acc: any, post: any) => {
                                     if (!acc[post.repo_id]) acc[post.repo_id] = [];
@@ -90,32 +97,34 @@ export function MonitoringPanel({ selectedRepo }: { selectedRepo: string }) {
                                 }, {})
                             ).map(([repoId, posts]: [string, any]) => (
                                 <div key={repoId} className={cn(
-                                    "border-2 border-black p-4 shadow-brutalist relative",
-                                    selectedRepo === repoId ? "bg-black/5" : "bg-white"
+                                    "border-2 border-black p-4 transition-all",
+                                    selectedRepo === repoId ? "bg-neutral-50 border-l-[12px]" : "bg-white"
                                 )}>
-                                    <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
-                                        <p className="font-black uppercase tracking-widest text-[10px] md:text-xs truncate max-w-[150px] sm:max-w-[200px]">
-                                            {repoId.split('/').pop()}
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="font-black uppercase tracking-tighter text-xs truncate max-w-[150px]">
+                                            {repoId}
                                         </p>
-                                        <Badge className="bg-black text-white rounded-none text-[7px] md:text-[8px]">
-                                            {posts.length} {posts.length === 1 ? 'POST' : 'POSTS'}
-                                        </Badge>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-black/30">Signals: {posts.length}</span>
+                                            <div className={cn(
+                                                "size-2 rounded-full",
+                                                posts.some((p: any) => p.is_active) ? "bg-[#00FF41]" : "bg-black/10"
+                                            )} />
+                                        </div>
                                     </div>
 
-                                    <div className="space-y-4 md:space-y-3">
+                                    <div className="flex flex-wrap gap-2">
                                         {posts.map((item: any) => (
-                                            <div key={item.id} className="flex items-center justify-between gap-4">
-                                                <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-tight text-black/60 truncate italic max-w-[180px] sm:max-w-none">
-                                                    {item.posts?.title}
-                                                </p>
-                                                <div className="flex items-center gap-2">
-                                                    <Switch
-                                                        checked={item.is_active}
-                                                        onCheckedChange={() => toggleMonitoring(item.id, item.is_active)}
-                                                        className="data-[state=checked]:bg-black scale-90 md:scale-100"
-                                                    />
-                                                </div>
-                                            </div>
+                                            <Badge
+                                                key={item.id}
+                                                variant="outline"
+                                                className={cn(
+                                                    "rounded-none border-black text-[8px] font-black uppercase tracking-tighter",
+                                                    item.is_active ? "bg-black text-white" : "bg-white text-black/20 border-neutral-100"
+                                                )}
+                                            >
+                                                {item.is_active ? "Active" : "Bypassed"}
+                                            </Badge>
                                         ))}
                                     </div>
                                 </div>

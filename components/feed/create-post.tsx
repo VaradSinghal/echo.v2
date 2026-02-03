@@ -39,20 +39,31 @@ export function CreatePost() {
         const { data: { user } } = await supabase.auth.getUser()
 
         if (user) {
-            const { error: insertError } = await supabase.from('posts').insert({
+            // 1. Create the post
+            const { data: post, error: insertError } = await supabase.from('posts').insert({
                 user_id: user.id,
                 title,
                 content,
                 repo_link: selectedRepo || null,
-            })
+            }).select().single()
 
-            if (!insertError) {
+            if (!insertError && post) {
+                // 2. If a repo is attached, automatically enable agent monitoring
+                if (selectedRepo) {
+                    try {
+                        const { toggleMonitoringAction } = await import("@/app/actions/agent")
+                        await toggleMonitoringAction(post.id, selectedRepo)
+                    } catch (monitorErr) {
+                        console.error("Failed to auto-enable monitoring:", monitorErr)
+                    }
+                }
+
                 setTitle("")
                 setContent("")
                 setSelectedRepo("")
                 router.refresh()
             } else {
-                setError(insertError.message || "Failed to create post.")
+                setError(insertError?.message || "Failed to create post.")
             }
         } else {
             setError("You must be logged in to post.")

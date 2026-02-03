@@ -8,8 +8,9 @@ import { SemanticSearch } from "@/components/agent/semantic-search"
 import { PRReviewPanel } from "@/components/agent/pr-review-panel"
 import { WorkHistoryPanel } from "@/components/agent/work-history-panel"
 import { AnalyticsDashboard } from "@/components/agent/analytics-dashboard"
+import { SignalContext } from "@/components/agent/signal-context"
 import { createClient } from "@/utils/supabase/client"
-import { Play, Loader2 } from "lucide-react"
+import { Play, Loader2, Bot } from "lucide-react"
 
 export default function AgentDashboard() {
     const [selectedRepo, setSelectedRepo] = React.useState<string>("")
@@ -103,6 +104,10 @@ export default function AgentDashboard() {
                         <AnalyticsDashboard selectedRepo={selectedRepo} />
 
                         <div className="space-y-6 md:space-y-8">
+                            <SignalContext selectedRepo={selectedRepo} />
+                        </div>
+
+                        <div className="space-y-6 md:space-y-8">
                             <h2 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Live Operations</h2>
                             <MonitoringPanel selectedRepo={selectedRepo} />
                         </div>
@@ -113,13 +118,21 @@ export default function AgentDashboard() {
                         </div>
                     </div>
                 ) : (
-                    <div className="border-2 border-dashed border-black/10 p-24 text-center">
-                        <p className="text-xs font-black uppercase tracking-widest text-black/10 mb-4">
-                            Initialize a repository from the feed to start monitoring.
+                    <div className="border-2 border-black/10 p-24 text-center bg-white/50 backdrop-blur-sm">
+                        <div className="size-16 border-2 border-black/10 mx-auto mb-8 flex items-center justify-center rotate-45">
+                            <Bot className="size-8 text-black/20 -rotate-45" />
+                        </div>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-black mb-2">No Active Nodes Detected</h3>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-black/30 mb-8 max-w-xs mx-auto leading-loose">
+                            Connect a GitHub repository to a post in the feed to initialize autonomous monitoring.
                         </p>
-                        <p className="text-[10px] font-bold text-black/20 uppercase">
-                            (Found {monitoredRepos.length} active monitors)
-                        </p>
+                        <div className="inline-flex items-center gap-4 py-2 px-4 border border-black/10 rounded-full">
+                            <span className="size-2 rounded-full bg-black/10" />
+                            <p className="text-[10px] font-bold text-black/20 uppercase tracking-tighter">
+                                Found {monitoredRepos.length} active monitors in total
+                            </p>
+                            <span className="size-2 rounded-full bg-black/10" />
+                        </div>
                     </div>
                 )}
             </div>
