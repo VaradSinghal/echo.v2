@@ -30,6 +30,9 @@ export function WorkHistoryPanel({ selectedRepo }: { selectedRepo: string }) {
     const supabase = createClient()
 
     const fetchHistory = React.useCallback(async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
         setLoading(true)
         try {
             let query = supabase
@@ -46,12 +49,14 @@ export function WorkHistoryPanel({ selectedRepo }: { selectedRepo: string }) {
                             monitored_posts!inner (
                                 repo_id,
                                 posts!inner (
-                                    title
+                                    title,
+                                    user_id
                                 )
                             )
                         )
                     )
                 `)
+                .eq('generated_code.agent_tasks.monitored_posts.posts.user_id', user.id)
                 .order('created_at', { ascending: false })
 
             if (selectedRepo && selectedRepo !== "all") {

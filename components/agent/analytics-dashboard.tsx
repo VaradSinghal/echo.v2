@@ -21,13 +21,24 @@ export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
         }
 
         console.log(`🤖 AnalyticsDashboard: Fetching data for ${selectedRepo}...`);
-        // 1. Get Repo Posts from monitored_posts
-        const { data: repoPosts, error: postsErr } = await supabase.from('monitored_posts').select('post_id').eq('repo_id', selectedRepo)
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        // 1. Get Repo Posts from monitored_posts for THIS user
+        const { data: repoPosts, error: postsErr } = await supabase
+            .from('monitored_posts')
+            .select(`
+                post_id,
+                posts!inner (user_id)
+            `)
+            .eq('repo_id', selectedRepo)
+            .eq('posts.user_id', user.id)
 
         if (postsErr) console.error("🤖 AnalyticsDashboard: Posts Fetch Error:", postsErr);
 
         const postIds = (repoPosts || []).map(p => p.post_id)
-        console.log(`🤖 AnalyticsDashboard: Found ${postIds.length} posts for this repo.`);
+        console.log(`🤖 AnalyticsDashboard: Found ${postIds.length} posts for this repo by current user.`);
 
         if (postIds.length === 0) {
             setStats({ totalComments: 0, prsOpened: 0, issuesOpened: 0 })

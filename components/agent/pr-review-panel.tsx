@@ -13,13 +13,20 @@ export function PRReviewPanel({ selectedRepo }: { selectedRepo: string }) {
     const supabase = createClient()
 
     const fetchTasks = React.useCallback(async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
         let query = supabase
             .from('agent_tasks')
             .select(`
                 *,
-                monitored_posts!inner (repo_id)
+                monitored_posts!inner (
+                    repo_id,
+                    posts!inner (user_id)
+                )
             `)
             .eq('task_type', 'generate_code')
+            .eq('monitored_posts.posts.user_id', user.id)
 
         if (selectedRepo !== "all") {
             query = query.eq('monitored_posts.repo_id', selectedRepo)
@@ -107,12 +114,12 @@ export function PRReviewPanel({ selectedRepo }: { selectedRepo: string }) {
 
                                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                                         <button
-                                            disabled={task.status !== 'pending' || !!processing}
+                                            disabled={(task.status !== 'pending' && task.status !== 'failed') || !!processing}
                                             onClick={() => handleApprove(task.id)}
                                             className="flex-1 flex items-center justify-center gap-2 bg-black text-white px-4 py-3 sm:py-2 rounded text-[10px] md:text-xs font-black uppercase tracking-widest hover:bg-gray-800 disabled:opacity-50"
                                         >
                                             {processing === task.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-                                            Approve & Generate PR
+                                            {task.status === 'failed' ? 'Retry Generation' : 'Approve & Generate PR'}
                                         </button>
                                         <div className="flex items-center gap-2">
                                             <button

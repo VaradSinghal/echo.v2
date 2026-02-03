@@ -1,14 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { MonitoringPanel } from "@/components/agent/monitoring-panel"
-import { SentimentChart } from "@/components/agent/sentiment-chart"
-import { ActivityFeed } from "@/components/agent/activity-feed"
-import { SemanticSearch } from "@/components/agent/semantic-search"
 import { PRReviewPanel } from "@/components/agent/pr-review-panel"
 import { WorkHistoryPanel } from "@/components/agent/work-history-panel"
 import { AnalyticsDashboard } from "@/components/agent/analytics-dashboard"
-import { SignalContext } from "@/components/agent/signal-context"
 import { createClient } from "@/utils/supabase/client"
 import { Play, Loader2, Bot } from "lucide-react"
 
@@ -20,11 +15,20 @@ export default function AgentDashboard() {
 
     React.useEffect(() => {
         const fetchRepos = async () => {
-            console.log("🤖 AgentDashboard: Fetching monitored repos...");
+            console.log("🤖 AgentDashboard: Fetching monitored repos for user...");
+
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
             const { data, error } = await supabase
                 .from('monitored_posts')
-                .select('id, repo_id')
+                .select(`
+                    id, 
+                    repo_id,
+                    posts!inner (user_id)
+                `)
                 .eq('is_active', true)
+                .eq('posts.user_id', user.id)
 
             if (error) console.error("🤖 AgentDashboard: Fetch Error:", error);
 
@@ -35,7 +39,7 @@ export default function AgentDashboard() {
                     return data.find(r => r.repo_id === repoId)
                 })
                 setMonitoredRepos(uniqueRepos)
-                if (uniqueRepos[0]) {
+                if (uniqueRepos[0] && !selectedRepo) {
                     console.log("🤖 AgentDashboard: Setting default repo:", uniqueRepos[0].repo_id);
                     setSelectedRepo(uniqueRepos[0].repo_id)
                 }
@@ -44,7 +48,7 @@ export default function AgentDashboard() {
             }
         }
         fetchRepos()
-    }, [supabase])
+    }, [supabase, selectedRepo])
 
     const triggerAnalysis = async () => {
         setLoading(true)
@@ -102,15 +106,6 @@ export default function AgentDashboard() {
                 {selectedRepo ? (
                     <div className="space-y-16 md:space-y-24">
                         <AnalyticsDashboard selectedRepo={selectedRepo} />
-
-                        <div className="space-y-6 md:space-y-8">
-                            <SignalContext selectedRepo={selectedRepo} />
-                        </div>
-
-                        <div className="space-y-6 md:space-y-8">
-                            <h2 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Live Operations</h2>
-                            <MonitoringPanel selectedRepo={selectedRepo} />
-                        </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
                             <PRReviewPanel selectedRepo={selectedRepo} />
