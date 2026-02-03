@@ -31,8 +31,7 @@ export function DashboardSidebar({ session, navItems, signOut }: DashboardSideba
                 <div className="flex h-full max-h-screen flex-col">
                     <div className="flex h-20 items-center justify-center border-b-2 border-black px-6">
                         <Link className="flex items-center gap-2" href="/">
-                            <img src="/logo.png" alt="Echo" className="h-8 w-8" />
-                            <span className="text-2xl font-black uppercase tracking-tighter text-black">Echo</span>
+                            <img src="/echo_logo.svg" alt="Echo" className="h-24 w-auto" />
                         </Link>
                     </div>
 
@@ -76,8 +75,7 @@ export function DashboardSidebar({ session, navItems, signOut }: DashboardSideba
                         {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                     </button>
                     <Link className="flex items-center gap-2" href="/">
-                        <img src="/logo.png" alt="Echo" className="h-6 w-6" />
-                        <span className="text-lg font-black uppercase tracking-tighter text-black">Echo</span>
+                        <img src="/echo_logo.svg" alt="Echo" className="h-10 w-auto" />
                     </Link>
                 </div>
                 <div className="flex items-center gap-3 border-2 border-black bg-neutral-50 px-3 py-1.5">
@@ -100,8 +98,7 @@ export function DashboardSidebar({ session, navItems, signOut }: DashboardSideba
                 >
                     <div className="flex items-center justify-between mb-12">
                         <Link className="flex items-center gap-2" href="/" onClick={toggleSidebar}>
-                            <img src="/logo.png" alt="Echo" className="h-8 w-8" />
-                            <span className="text-2xl font-black uppercase tracking-tighter text-black">Echo</span>
+                            <img src="/echo_logo.svg" alt="Echo" className="h-12 w-auto" />
                         </Link>
                         <button onClick={toggleSidebar} className="p-1">
                             <X className="h-6 w-6" />

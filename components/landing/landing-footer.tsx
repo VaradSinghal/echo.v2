@@ -10,10 +10,9 @@ export function LandingFooter() {
                         <div className="flex items-center gap-2 mb-6">
                             <img
                                 alt="Echo Logo"
-                                className="h-8 w-8 invert"
-                                src="/logo.png"
+                                className="h-26 w-auto invert"
+                                src="/echo_logo.svg"
                             />
-                            <span className="text-2xl font-black uppercase tracking-tighter">Echo</span>
                         </div>
                         <p className="text-neutral-400 text-sm font-medium">
                             The ultimate feedback loop for modern engineering teams. Driven by AI, powered by community.

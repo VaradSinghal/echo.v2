@@ -11,10 +11,9 @@ export function LandingNav() {
                     <Link href="/" className="flex items-center gap-2 group">
                         <img
                             alt="Echo Logo"
-                            className="h-8 w-8"
-                            src="/logo.png"
+                            className="h-24 w-auto"
+                            src="/echo_logo.svg"
                         />
-                        <span className="text-2xl font-black tracking-tighter uppercase text-black">Echo</span>
                     </Link>
 
                     <div className="hidden md:flex items-center space-x-10">
