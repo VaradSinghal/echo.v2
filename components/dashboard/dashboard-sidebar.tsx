@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, LogOut, LayoutDashboard, Activity, Bot, User } from "lucide-react"
+import { Menu, X, LogOut, LayoutDashboard, Activity, Bot, User, MessageSquare } from "lucide-react"
 import { cn } from "@/utils/cn"
 
 interface NavItem {

@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, LogOut, User, Activity, Bot } from "lucide-react";
+import { LayoutDashboard, LogOut, User, Activity, Bot, MessageSquare } from "lucide-react";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 
 export default async function DashboardLayout({
@@ -27,6 +27,7 @@ export default async function DashboardLayout({
 
     const navItems = [
         { href: "/dashboard/feed", label: "Community Feed", icon: <Activity className="h-5 w-5" /> },
+        { href: "/dashboard/reddit", label: "Reddit", icon: <MessageSquare className="h-5 w-5" /> },
         { href: "/dashboard/agent", label: "Echo Agent", icon: <Bot className="h-5 w-5" /> },
         { href: "/dashboard/profile", label: "Profile", icon: <User className="h-5 w-5" /> },
     ];
