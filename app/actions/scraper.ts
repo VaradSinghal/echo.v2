@@ -1,15 +1,16 @@
 "use server";
 
 import { scrapeRedditComments, RedditComment } from "@/lib/scraper/reddit";
+import { scrapeProductHuntComments, ProductHuntComment } from "@/lib/scraper/producthunt";
 import { createClient } from "@/utils/supabase/server";
 
 export interface ScrapeResult {
     success: boolean;
-    data?: RedditComment[];
+    data?: RedditComment[] | ProductHuntComment[];
     error?: string;
 }
 
-export async function saveRedditCommentsAction(url: string, comments: RedditComment[]) {
+export async function saveRedditCommentsAction(url: string, comments: RedditComment[], repoLink?: string) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -30,6 +31,7 @@ export async function saveRedditCommentsAction(url: string, comments: RedditComm
                 user_id: user.id,
                 title: title,
                 content: url, // Storing URL in content or we should add a 'url' column if exists. I'll assume 'content' for now or 'url'.
+                repo_link: repoLink,
                 // Let's check schema by failing or conservative guess. 
                 // Best guess: 'platform' field might exist?
                 // Let's dump 'content' as the URL + Title for now to be safe if no URL column.
@@ -85,5 +87,69 @@ export async function scrapeRedditPostAction(url: string): Promise<ScrapeResult>
     } catch (error: any) {
         console.error("Action Error:", error);
         return { success: false, error: error.message };
+    }
+}
+
+export async function scrapeProductHuntPostAction(url: string): Promise<ScrapeResult> {
+    if (!url) {
+        return { success: false, error: "URL is required" };
+    }
+
+    try {
+        console.log(`Action: Scraping PH ${url}...`);
+        const comments = await scrapeProductHuntComments(url);
+        return { success: true, data: comments };
+    } catch (error: any) {
+        console.error("Action Error:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function saveProductHuntCommentsAction(url: string, comments: ProductHuntComment[], repoLink?: string) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const title = `Product Hunt: ${url.split('/products/')[1]?.split('/')[0] || 'Unknown'}`;
+
+        const { data: post, error: postError } = await supabase
+            .from('posts')
+            .insert({
+                user_id: user.id,
+                title: title,
+                content: url,
+                repo_link: repoLink,
+            })
+            .select()
+            .single();
+
+        if (postError) {
+            console.error("Error creating post:", postError);
+            return { success: false, error: "Failed to create post record: " + postError.message };
+        }
+
+        const commentsToInsert = comments.map(c => ({
+            post_id: post.id,
+            user_id: user.id,
+            content: `[${c.author}] ${c.content}`,
+        }));
+
+        const { error: commentsError } = await supabase
+            .from('comments')
+            .insert(commentsToInsert);
+
+        if (commentsError) {
+            console.error("Error saving PH comments:", commentsError);
+            return { success: false, error: "Created post but failed to save comments" };
+        }
+
+        return { success: true, postId: post.id };
+
+    } catch (e: any) {
+        return { success: false, error: e.message };
     }
 }
