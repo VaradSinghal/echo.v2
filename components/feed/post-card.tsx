@@ -25,6 +25,7 @@ interface PostProps {
         user_has_liked: boolean
         is_monitored: boolean
         user_id: string
+        image_url: string | null
     }
     currentUserId: string
 }
@@ -88,6 +89,16 @@ export function PostCard({ post, currentUserId }: PostProps) {
                     </a>
                 )}
             </div>
+
+            {post.image_url && (
+                <div className="border-b-2 border-black overflow-hidden bg-neutral-100 aspect-video flex items-center justify-center">
+                    <img
+                        src={post.image_url}
+                        alt={post.title}
+                        className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
+                    />
+                </div>
+            )}
 
             <div className="p-8">
                 <h3 className="text-2xl font-black uppercase tracking-tight mb-4 text-black italic">

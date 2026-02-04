@@ -3,7 +3,7 @@
 import * as React from "react"
 import { createClient } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
-import { Loader2, Github, Send } from "lucide-react"
+import { Loader2, Github, Send, Image as ImageIcon, X } from "lucide-react"
 
 interface Repo {
     id: number
@@ -18,6 +18,9 @@ export function CreatePost() {
     const [selectedRepo, setSelectedRepo] = React.useState<string>("")
     const [isLoading, setIsLoading] = React.useState(false)
     const [error, setError] = React.useState<string | null>(null)
+    const [imageFile, setImageFile] = React.useState<File | null>(null)
+    const [imagePreview, setImagePreview] = React.useState<string | null>(null)
+    const fileInputRef = React.useRef<HTMLInputElement>(null)
     const router = useRouter()
     const supabase = createClient()
 
@@ -30,6 +33,30 @@ export function CreatePost() {
             .catch(err => console.error("Failed to load repos", err))
     }, [])
 
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        if (file.size > 2 * 1024 * 1024) {
+            setError("Image size must be less than 2MB")
+            return
+        }
+
+        setImageFile(file)
+        const reader = new FileReader()
+        reader.onloadend = () => {
+            setImagePreview(reader.result as string)
+        }
+        reader.readAsDataURL(file)
+        setError(null)
+    }
+
+    const removeImage = () => {
+        setImageFile(null)
+        setImagePreview(null)
+        if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!title || !content) return
@@ -39,16 +66,42 @@ export function CreatePost() {
         const { data: { user } } = await supabase.auth.getUser()
 
         if (user) {
-            // 1. Create the post
+            let imageUrl = null
+
+            // 1. Upload image if selected
+            if (imageFile) {
+                const fileExt = imageFile.name.split('.').pop()
+                const fileName = `${Math.random()}.${fileExt}`
+                const filePath = `${user.id}/${fileName}`
+
+                const { error: uploadError } = await supabase.storage
+                    .from('post_images')
+                    .upload(filePath, imageFile)
+
+                if (uploadError) {
+                    setError(`Image upload failed: ${uploadError.message}`)
+                    setIsLoading(false)
+                    return
+                }
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('post_images')
+                    .getPublicUrl(filePath)
+
+                imageUrl = publicUrl
+            }
+
+            // 2. Create the post
             const { data: post, error: insertError } = await supabase.from('posts').insert({
                 user_id: user.id,
                 title,
                 content,
                 repo_link: selectedRepo || null,
+                image_url: imageUrl,
             }).select().single()
 
             if (!insertError && post) {
-                // 2. If a repo is attached, automatically enable agent monitoring
+                // 3. If a repo is attached, automatically enable agent monitoring
                 if (selectedRepo) {
                     try {
                         const { toggleMonitoringAction } = await import("@/app/actions/agent")
@@ -61,6 +114,7 @@ export function CreatePost() {
                 setTitle("")
                 setContent("")
                 setSelectedRepo("")
+                removeImage()
                 router.refresh()
             } else {
                 setError(insertError?.message || "Failed to create post.")
@@ -105,20 +159,52 @@ export function CreatePost() {
                     />
                 </div>
 
-                <div>
-                    <select
-                        className="w-full border-2 border-black bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-tight focus:outline-none focus:bg-neutral-50 appearance-none rounded-none"
-                        value={selectedRepo}
-                        onChange={(e) => setSelectedRepo(e.target.value)}
+                {imagePreview && (
+                    <div className="relative border-2 border-black group">
+                        <img src={imagePreview} alt="Preview" className="w-full h-auto grayscale hover:grayscale-0 transition-all" />
+                        <button
+                            type="button"
+                            onClick={removeImage}
+                            className="absolute top-2 right-2 bg-black text-white p-1 hover:bg-neutral-800 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
+
+                <div className="flex gap-2">
+                    <div className="flex-1">
+                        <select
+                            className="w-full border-2 border-black bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-tight focus:outline-none focus:bg-neutral-50 appearance-none rounded-none h-full"
+                            value={selectedRepo}
+                            onChange={(e) => setSelectedRepo(e.target.value)}
+                            disabled={isLoading}
+                        >
+                            <option value="">ATTACH REPOSITORY (OPTIONAL)</option>
+                            {repos.map(repo => (
+                                <option key={repo.id} value={repo.html_url}>
+                                    {repo.full_name.toUpperCase()}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
                         disabled={isLoading}
+                        className="border-2 border-black p-2 hover:bg-neutral-50 transition-colors flex items-center justify-center aspect-square"
+                        title="Add Image"
                     >
-                        <option value="">ATTACH REPOSITORY (OPTIONAL)</option>
-                        {repos.map(repo => (
-                            <option key={repo.id} value={repo.html_url}>
-                                {repo.full_name.toUpperCase()}
-                            </option>
-                        ))}
-                    </select>
+                        <ImageIcon className="w-5 h-5" />
+                    </button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageChange}
+                        accept="image/*"
+                        className="hidden"
+                    />
                 </div>
 
                 <button
