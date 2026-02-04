@@ -24,7 +24,7 @@ interface WorkHistoryItem {
     }
 }
 
-export function WorkHistoryPanel({ selectedRepo }: { selectedRepo: string }) {
+export function WorkHistoryPanel({ selectedRepo, selectedPostId }: { selectedRepo: string, selectedPostId?: string }) {
     const [history, setHistory] = React.useState<WorkHistoryItem[]>([])
     const [loading, setLoading] = React.useState(true)
     const supabase = createClient()
@@ -50,7 +50,8 @@ export function WorkHistoryPanel({ selectedRepo }: { selectedRepo: string }) {
                                 repo_id,
                                 posts!inner (
                                     title,
-                                    user_id
+                                    user_id,
+                                    id
                                 )
                             )
                         )
@@ -59,7 +60,11 @@ export function WorkHistoryPanel({ selectedRepo }: { selectedRepo: string }) {
                 .eq('generated_code.agent_tasks.monitored_posts.posts.user_id', user.id)
                 .order('created_at', { ascending: false })
 
-            if (selectedRepo && selectedRepo !== "all") {
+            if (selectedPostId) {
+                // Filter by specific post ID if provided
+                query = query.eq('generated_code.agent_tasks.monitored_posts.posts.id', selectedPostId)
+            } else if (selectedRepo && selectedRepo !== "all") {
+                // Fallback to repo filter
                 query = query.eq('generated_code.agent_tasks.monitored_posts.repo_id', selectedRepo)
             }
 

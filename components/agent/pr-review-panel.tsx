@@ -4,7 +4,7 @@ import * as React from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Check, X, Code2, Github, Loader2, ChevronDown, ChevronUp } from "lucide-react"
 
-export function PRReviewPanel({ selectedRepo }: { selectedRepo: string }) {
+export function PRReviewPanel({ selectedRepo, selectedPostId }: { selectedRepo: string, selectedPostId?: string }) {
     const [tasks, setTasks] = React.useState<any[]>([])
     const [loading, setLoading] = React.useState(true)
     const [processing, setProcessing] = React.useState<string | null>(null)
@@ -22,13 +22,16 @@ export function PRReviewPanel({ selectedRepo }: { selectedRepo: string }) {
                 *,
                 monitored_posts!inner (
                     repo_id,
+                    post_id,
                     posts!inner (user_id)
                 )
             `)
             .eq('task_type', 'generate_code')
             .eq('monitored_posts.posts.user_id', user.id)
 
-        if (selectedRepo !== "all") {
+        if (selectedPostId) {
+            query = query.eq('monitored_posts.post_id', selectedPostId)
+        } else if (selectedRepo !== "all") {
             query = query.eq('monitored_posts.repo_id', selectedRepo)
         }
 
@@ -36,7 +39,7 @@ export function PRReviewPanel({ selectedRepo }: { selectedRepo: string }) {
 
         if (data) setTasks(data);
         setLoading(false);
-    }, [supabase, selectedRepo]);
+    }, [supabase, selectedRepo, selectedPostId]);
 
     React.useEffect(() => {
         fetchTasks();

@@ -9,13 +9,14 @@ import { Play, Loader2, Bot } from "lucide-react"
 
 export default function AgentDashboard() {
     const [selectedRepo, setSelectedRepo] = React.useState<string>("")
-    const [monitoredRepos, setMonitoredRepos] = React.useState<any[]>([])
+    const [selectedPostId, setSelectedPostId] = React.useState<string>("")
+    const [monitoredItems, setMonitoredItems] = React.useState<any[]>([])
     const [loading, setLoading] = React.useState(false)
     const supabase = createClient()
 
     React.useEffect(() => {
-        const fetchRepos = async () => {
-            console.log("🤖 AgentDashboard: Fetching monitored repos for user...");
+        const fetchMonitoredItems = async () => {
+            console.log("🤖 AgentDashboard: Fetching monitored items for user...");
 
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
@@ -25,7 +26,8 @@ export default function AgentDashboard() {
                 .select(`
                     id, 
                     repo_id,
-                    posts!inner (user_id)
+                    post_id,
+                    posts!inner (user_id, title)
                 `)
                 .eq('is_active', true)
                 .eq('posts.user_id', user.id)
@@ -34,21 +36,31 @@ export default function AgentDashboard() {
 
             if (data && data.length > 0) {
                 console.log(`🤖 AgentDashboard: Found ${data.length} monitored records.`, data);
-                // Deduplicate by repo_id
-                const uniqueRepos = Array.from(new Set(data.map(r => r.repo_id))).map(repoId => {
-                    return data.find(r => r.repo_id === repoId)
-                })
-                setMonitoredRepos(uniqueRepos)
-                if (uniqueRepos[0] && !selectedRepo) {
-                    console.log("🤖 AgentDashboard: Setting default repo:", uniqueRepos[0].repo_id);
-                    setSelectedRepo(uniqueRepos[0].repo_id)
+                setMonitoredItems(data)
+
+                // Select first item if nothing selected
+                if (!selectedRepo) {
+                    const first = data[0]
+                    setSelectedRepo(first.repo_id)
+                    setSelectedPostId(first.post_id)
                 }
             } else {
                 console.log("🤖 AgentDashboard: No monitored repos found.");
             }
         }
-        fetchRepos()
-    }, [supabase, selectedRepo])
+        fetchMonitoredItems()
+    }, [supabase, selectedRepo]) // We keep selectedRepo in dep array but maybe not needed if we fetch once
+
+    const handleSelectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const postId = e.target.value
+        setSelectedPostId(postId)
+        if (postId) {
+            const item = monitoredItems.find(i => i.post_id === postId)
+            if (item) setSelectedRepo(item.repo_id)
+        } else {
+            setSelectedRepo("")
+        }
+    }
 
     const triggerAnalysis = async () => {
         setLoading(true)
@@ -77,14 +89,14 @@ export default function AgentDashboard() {
                     <div className="relative w-full sm:w-[300px]">
                         <label className="absolute -top-6 left-0 text-[8px] md:text-[10px] font-black uppercase tracking-widest text-black/30">Select Active Node</label>
                         <select
-                            value={selectedRepo}
-                            onChange={(e) => setSelectedRepo(e.target.value)}
+                            value={selectedPostId}
+                            onChange={handleSelectionChange}
                             className="w-full border-2 border-black bg-white px-4 py-3 text-[10px] md:text-xs font-black uppercase tracking-widest focus:outline-none appearance-none rounded-none shadow-brutalist active:translate-y-[2px] active:shadow-none"
                         >
-                            {monitoredRepos.length === 0 && <option value="">NO ACTIVE REPOS</option>}
-                            {monitoredRepos.map(repo => (
-                                <option key={repo.id} value={repo.repo_id}>
-                                    {repo.repo_id.split('/').pop()?.toUpperCase()}
+                            {monitoredItems.length === 0 && <option value="">NO ACTIVE REPOS</option>}
+                            {monitoredItems.map(item => (
+                                <option key={item.post_id} value={item.post_id}>
+                                    {item.repo_id.split('/').pop()?.toUpperCase()} • {item.posts.title.substring(0, 15)}...
                                 </option>
                             ))}
                         </select>
@@ -92,7 +104,7 @@ export default function AgentDashboard() {
 
                     <button
                         onClick={triggerAnalysis}
-                        disabled={loading || monitoredRepos.length === 0}
+                        disabled={loading || monitoredItems.length === 0}
                         className="btn-solid text-[8px] md:text-[10px] tracking-[0.2em] px-6 md:px-8 py-3 w-full sm:w-auto flex items-center justify-center gap-3"
                     >
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-3 w-3 md:h-4 md:w-4 fill-white" />}
@@ -105,11 +117,11 @@ export default function AgentDashboard() {
             <div className="max-w-6xl mx-auto w-full px-0 sm:px-4">
                 {selectedRepo ? (
                     <div className="space-y-16 md:space-y-24">
-                        <AnalyticsDashboard selectedRepo={selectedRepo} />
+                        <AnalyticsDashboard selectedRepo={selectedRepo} selectedPostId={selectedPostId} />
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
-                            <PRReviewPanel selectedRepo={selectedRepo} />
-                            <WorkHistoryPanel selectedRepo={selectedRepo} />
+                            <PRReviewPanel selectedRepo={selectedRepo} selectedPostId={selectedPostId} />
+                            <WorkHistoryPanel selectedRepo={selectedRepo} selectedPostId={selectedPostId} />
                         </div>
                     </div>
                 ) : (
@@ -124,7 +136,7 @@ export default function AgentDashboard() {
                         <div className="inline-flex items-center gap-4 py-2 px-4 border border-black/10 rounded-full">
                             <span className="size-2 rounded-full bg-black/10" />
                             <p className="text-[10px] font-bold text-black/20 uppercase tracking-tighter">
-                                Found {monitoredRepos.length} active monitors in total
+                                Found {monitoredItems.length} active monitors in total
                             </p>
                             <span className="size-2 rounded-full bg-black/10" />
                         </div>

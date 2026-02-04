@@ -7,7 +7,7 @@ import { Loader2, TerminalSquare, X, Database } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AgentTerminal } from "./agent-terminal"
 
-export function MonitoringPanel({ selectedRepo }: { selectedRepo: string }) {
+export function MonitoringPanel({ selectedRepo, selectedPostId }: { selectedRepo: string, selectedPostId?: string }) {
     const [monitoredPosts, setMonitoredPosts] = React.useState<any[]>([])
     const [recentTasks, setRecentTasks] = React.useState<any[]>([])
     const [loading, setLoading] = React.useState(true)
@@ -21,7 +21,16 @@ export function MonitoringPanel({ selectedRepo }: { selectedRepo: string }) {
         const taskChannel = supabase
             .channel('agent-tasks-monitor')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agent_tasks' }, (payload) => {
-                setRecentTasks(prev => [payload.new, ...prev].slice(0, 5))
+                const newTask = payload.new
+                // Filter realtime events if a post is selected
+                if (selectedPostId) {
+                    // We need to check if this task belongs to the selected post. 
+                    // This is tricky without a join in realtime, so we might optimistically add it 
+                    // or re-fetch. Re-fetching is safer for correctness.
+                    fetchData()
+                } else {
+                    setRecentTasks(prev => [newTask, ...prev].slice(0, 5))
+                }
             })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'agent_tasks' }, (payload) => {
                 setRecentTasks(prev => prev.map(t => t.id === payload.new.id ? payload.new : t))
@@ -31,13 +40,20 @@ export function MonitoringPanel({ selectedRepo }: { selectedRepo: string }) {
         return () => {
             supabase.removeChannel(taskChannel)
         }
-    }, [])
+    }, [selectedPostId]) // refetch when selectedPostId changes
 
     const fetchData = async () => {
         setLoading(true)
+
+        let tasksQuery = supabase.from('agent_tasks').select('*, monitored_posts!inner(post_id)').order('created_at', { ascending: false }).limit(5)
+
+        if (selectedPostId) {
+            tasksQuery = tasksQuery.eq('monitored_posts.post_id', selectedPostId)
+        }
+
         const [postsRes, tasksRes] = await Promise.all([
             supabase.from('monitored_posts').select(`*, posts (title)`),
-            supabase.from('agent_tasks').select('*').order('created_at', { ascending: false }).limit(5)
+            tasksQuery
         ])
 
         if (postsRes.data) setMonitoredPosts(postsRes.data)

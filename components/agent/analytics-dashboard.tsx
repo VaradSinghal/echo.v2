@@ -6,7 +6,7 @@ import { MessageSquare, GitPullRequest, AlertCircle, Loader2, CheckCircle, Zap, 
 import { cn } from "@/lib/utils"
 import { ExecutionTrace } from "./execution-trace"
 
-export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
+export function AnalyticsDashboard({ selectedRepo, selectedPostId }: { selectedRepo: string, selectedPostId?: string }) {
     const [stats, setStats] = React.useState<any>(null)
     const [tasks, setTasks] = React.useState<any[]>([])
     const [loading, setLoading] = React.useState(true)
@@ -20,13 +20,13 @@ export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
             return;
         }
 
-        console.log(`🤖 AnalyticsDashboard: Fetching data for ${selectedRepo}...`);
+        console.log(`🤖 AnalyticsDashboard: Fetching data for ${selectedRepo} (Post: ${selectedPostId || 'All'})...`);
 
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
         // 1. Get Repo Posts from monitored_posts for THIS user
-        const { data: repoPosts, error: postsErr } = await supabase
+        let postsQuery = supabase
             .from('monitored_posts')
             .select(`
                 post_id,
@@ -34,6 +34,12 @@ export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
             `)
             .eq('repo_id', selectedRepo)
             .eq('posts.user_id', user.id)
+
+        if (selectedPostId) {
+            postsQuery = postsQuery.eq('post_id', selectedPostId)
+        }
+
+        const { data: repoPosts, error: postsErr } = await postsQuery
 
         if (postsErr) console.error("🤖 AnalyticsDashboard: Posts Fetch Error:", postsErr);
 
@@ -58,20 +64,26 @@ export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
             .in('comment_id', commentIds)
             .in('category', ['feature_request', 'bug'])
 
-        const { count: prCount } = await supabase
+        let prQuery = supabase
             .from('github_prs')
             .select(`
                 id,
                 generated_code!inner (
                     agent_tasks!inner (
-                        monitored_posts!inner (repo_id)
+                        monitored_posts!inner (repo_id, post_id)
                     )
                 )
             `, { count: 'exact', head: true })
             .eq('generated_code.agent_tasks.monitored_posts.repo_id', selectedRepo)
 
+        if (selectedPostId) {
+            prQuery = prQuery.eq('generated_code.agent_tasks.monitored_posts.post_id', selectedPostId)
+        }
+
+        const { count: prCount } = await prQuery
+
         // 3. Agent Stage (Tasks)
-        const { data: activeTasks } = await supabase
+        let tasksQuery = supabase
             .from('agent_tasks')
             .select(`
                 id, 
@@ -79,11 +91,17 @@ export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
                 status, 
                 current_step,
                 logs,
-                monitored_posts!inner (repo_id)
+                monitored_posts!inner (repo_id, post_id)
             `)
             .eq('monitored_posts.repo_id', selectedRepo)
             .order('created_at', { ascending: false })
             .limit(1)
+
+        if (selectedPostId) {
+            tasksQuery = tasksQuery.eq('monitored_posts.post_id', selectedPostId)
+        }
+
+        const { data: activeTasks } = await tasksQuery
 
         setStats({
             totalComments: commentCount || 0,
@@ -92,7 +110,7 @@ export function AnalyticsDashboard({ selectedRepo }: { selectedRepo: string }) {
         })
         setTasks(activeTasks || [])
         setLoading(false)
-    }, [supabase, selectedRepo])
+    }, [supabase, selectedRepo, selectedPostId])
 
     React.useEffect(() => {
         fetchData()
