@@ -1,58 +1,119 @@
-# Echo Agent - Community-Driven Code Automation
+# 🌊 Echo Agent
+### Community-Driven Code Automation with AI consensus.
 
-Echo Agent is an AI-powered platform that bridges the gap between community feedback and codebase evolution. By monitoring GitHub repository comments and discussions, Echo uses Gemini AI and pgVector to analyze feedback, detect patterns, and automatically propose code changes via Pull Requests.
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Database-3EC78D?style=flat-square&logo=supabase)](https://supabase.com/)
+[![Gemini AI](https://img.shields.io/badge/Gemini-AI-blue?style=flat-square&logo=google-gemini)](https://ai.google.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 
-## Features
+**Echo Agent** is an autonomous platform that bridges the gap between community sentiment and codebase evolution. It listens to your users where they speak (GitHub, Socials), analyzes their needs using LLMs, and automatically proposes code changes through Pull Requests.
 
-- **Real-time Monitoring**: Tracks feedback across multiple repositories via Supabase.
-- **Semantic Feedback Analysis**: Uses Gemini Pro for sentiment and category classification.
-- **Vector-Powered Search**: Semantic search over thousands of comments using pgVector.
-- **AI Code Proposals**: Automatically implements fixes and features based on community consensus.
-- **Human-in-the-Loop**: A streamlined PR approval system for developers.
-- **Multi-Account API Support**: Rotating Gemini API keys to handle scale and rate limits.
+---
 
-## Tech Stack
+## 🚀 How It Works
 
-- **Frontend**: Next.js 14 (App Router), Tailwind CSS, Shadcn UI
-- **Backend**: Next.js API Routes, Server Actions
-- **Database**: Supabase (Postgres) with `pgVector`
-- **AI**: Google Gemini AI (Pro & Embedding models)
-- **Infrastructure**: Upstash Redis (Rate Limiting), Vercel
+Echo Agent follows a simple yet powerful pipeline to transform feedback into code:
 
-## Setup Instructions
+```mermaid
+graph TD
+    A["📢 Community Feedback"] --> B["🧠 Gemini Processor"]
+    B --> C["🔍 Vector Search (pgVector)"]
+    C --> D{"⚖️ Consensus Engine"}
+    D -- "Actionable" --> E["💻 Echo Agent (Coding)"]
+    D -- "Noise" --> F["🗑️ Filtered"]
+    E --> G["🔀 Pull Request"]
+    G --> H["👀 Human Review"]
+```
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-repo/echo-v2.git
-   cd echo-v2
-   ```
+1.  **Listen**: Monitors GitHub discussions, comments, and linked social posts.
+2.  **Analyze**: Uses **Gemini Pro** to classify sentiment, identify bugs/features, and extract technical requirements.
+3.  **Synthesize**: Clusters similar feedback using **pgVector** embeddings to find community consensus.
+4.  **Act**: The AI agent writes code, creates a branch, and opens a PR with a detailed explanation of *why* the change was made.
 
-2. **Environment Variables**:
-   Create a `.env.local` file with the following:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-   
-   GEMINI_API_KEYS=key1,key2,key3
-   UPSTASH_REDIS_REST_URL=your_redis_url
-   UPSTASH_REDIS_REST_TOKEN=your_redis_token
-   ```
+---
 
-3. **Database Migrations**:
-   Deploy the migrations found in the `supabase/migrations` folder to your Supabase project.
+## ✨ Core Features
 
-4. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
+-   **🎯 Semantic Signal Detection**: Goes beyond keyword matching. Identifies *intent* and *frustration* levels.
+-   **📈 Real-time Analytics**: A "Mission Control" dashboard showing sentiment trends and active signals.
+-   **💻 Agent Terminal**: Watch the AI work in real-time through a streaming terminal interface.
+-   **🛡️ Human-in-the-Loop**: No code reaches production without human approval.
+-   **🔑 Multi-Key Rotation**: Built-in support for multiple Gemini API keys to bypass rate limits.
+-   **🌙 Modern Brutalist UI**: Sleek, high-contrast interface designed for power users.
 
-5. **Run Locally**:
-   ```bash
-   npm run dev
-   ```
+---
 
-## Documentation
+## 🛠️ Tech Stack
 
-- [User Guide](file:///e:/Projects/echo-v2/USER_GUIDE.md)
-- [Architecture Walkthrough](file:///C:/Users/Varad%20Singhal/.gemini/antigravity/brain/d83d4245-9053-48fd-b17c-6955eeef5027/walkthrough.md)
+### Frontend & UI
+- **Framework**: Next.js 14 (App Router)
+- **Styling**: Tailwind CSS
+- **Components**: Shadcn UI & Radix UI
+- **Charts**: Recharts
+
+### Backend & AI
+- **Database**: Supabase (PostgreSQL)
+- **Vector Search**: pgVector
+- **Intelligence**: Google Gemini (Pro & Text-Embedding)
+- **Rate Limiting**: Upstash Redis
+
+---
+
+## ⚙️ Quick Start
+
+### 1. Requirements
+Ensure you have Node.js 18+, a Supabase account, and a Google AI Studio (Gemini) API key.
+
+### 2. Installation
+```bash
+git clone https://github.com/VaradSinghal/echo-v2.git
+cd echo-v2
+npm install
+```
+
+### 3. Environment Setup
+Create a `.env.local` file:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Multiple keys separated by commas
+GEMINI_API_KEYS=key1,key2,key3
+
+UPSTASH_REDIS_REST_URL=your_redis_url
+UPSTASH_REDIS_REST_TOKEN=your_redis_token
+```
+
+### 4. Database Setup
+Apply the migrations in `supabase/migrations/` to your Supabase project. This sets up the necessary schemas for signals, tasks, and vector storage.
+
+### 5. Run it
+```bash
+npm run dev
+```
+
+---
+
+## 📖 Documentation
+
+*   [User Guide](file:///e:/Projects/echo-v2/USER_GUIDE.md) - Learn how to connect your first repo.
+*   [API Documentation] - (Coming Soon)
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our contributing guidelines for how to get started.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
