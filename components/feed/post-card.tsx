@@ -86,15 +86,13 @@ export function PostCard({ post, currentUserId }: PostProps) {
                 {/* Display all linked repos */}
                 <div className="flex flex-wrap gap-1">
                     {(post.linked_repos && post.linked_repos.length > 0 ? post.linked_repos : (post.repo_link ? [post.repo_link.replace('https://github.com/', '')] : [])).map((repoId, idx) => (
-                        <a
+                        <span
                             key={idx}
-                            href={repoId.startsWith('http') ? repoId : `https://github.com/${repoId}`}
-                            target="_blank"
-                            className="group flex items-center gap-1 border border-black bg-white px-2 py-1 text-[10px] font-black uppercase tracking-widest text-black hover:bg-black hover:text-white transition-all"
+                            className="flex items-center gap-1 border border-black bg-white px-2 py-1 text-[10px] font-black uppercase tracking-widest text-black/50"
                         >
                             <Github className="h-3 w-3" />
                             {repoId.split('/').pop()}
-                        </a>
+                        </span>
                     ))}
                 </div>
             </div>
