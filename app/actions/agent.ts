@@ -48,6 +48,13 @@ export async function createPullRequestAction(taskId: string) {
         const repo = task.monitored_posts.repo_id;
         const branch = `echo-agent-fix-${taskId.substring(0, 8)}`;
 
+        // CRITICAL: Immediately mark as processing to prevent re-dispatch by queue processor
+        await supabase.from('agent_tasks').update({
+            status: 'processing',
+            current_step: 'Initializing...',
+            last_heartbeat: new Date().toISOString()
+        }).eq('id', taskId);
+
         // Helper for logging and heartbeat
         const addLog = async (msg: string, status: string = 'processing', step?: string) => {
             console.log(`🤖 [Task ${taskId}] ${step ? `[${step}] ` : ''}${msg}`);

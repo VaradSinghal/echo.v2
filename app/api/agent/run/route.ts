@@ -15,28 +15,25 @@ export async function POST(request: Request) {
     const supabase = createServiceRoleClient();
     const gemini = new GeminiService();
 
-    // 0. Recovery Phase: Cleanup and Resume Stale Tasks
-    // - Cleanup: Older than 30 minutes (Permanent Fail)
-    // - Recovery: Older than 5 minutes (Reset to Pending for Retry)
-
+    // 0. Recovery & Maintenance Phase
     const now = new Date();
-    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
+    const twoHoursAgo = new Date(now.getTime() - 120 * 60 * 1000).toISOString();
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
 
-    // Permanent Fail for very old tasks
-    const { error: cleanupError } = await supabase
+    // A. ORPHAN CLEANUP: Mark tasks older than 2 hours as FAILED
+    const { error: orphanError } = await supabase
         .from('agent_tasks')
         .update({
             status: 'failed',
-            current_step: 'Failed: Agent process timed out (no heartbeat for 30m)',
-            logs: [{ timestamp: new Date().toISOString(), message: "Marked as failed due to extreme inactivity (30m).", status: "failed" }]
+            current_step: 'Failed: Orphaned task timed out (2h limit)',
+            logs: [{ timestamp: new Date().toISOString(), message: "Marked as failed: Task exceeded maximum lifetime (2h).", status: "failed" }]
         })
-        .eq('status', 'processing')
-        .lt('last_heartbeat', thirtyMinutesAgo);
+        .in('status', ['processing', 'pending'])
+        .lt('created_at', twoHoursAgo);
 
-    if (cleanupError) console.error("🤖 Cleanup Error:", cleanupError);
+    if (orphanError) console.error("🤖 Maintenance Error (Orphans):", orphanError);
 
-    // Recovery for recently stalled tasks (Older than 5m)
+    // B. STALL RECOVERY: Reset processing tasks without heartbeats for 5m
     const { data: stalledTasks, error: stalledError } = await supabase
         .from('agent_tasks')
         .update({
@@ -48,12 +45,28 @@ export async function POST(request: Request) {
         .lt('last_heartbeat', fiveMinutesAgo)
         .select('id');
 
-    if (stalledError) console.error("🤖 Recovery Error:", stalledError);
-    if (stalledTasks && stalledTasks.length > 0) {
-        console.log(`🤖 Recovered ${stalledTasks.length} stalled tasks. Re-triggering...`);
-        stalledTasks.forEach(task => {
-            createPullRequestAction(task.id).catch(e => console.error(`❌ Restart failed for task ${task.id}:`, e));
-        });
+    if (stalledError) console.error("🤖 Maintenance Error (Stalled):", stalledError);
+
+    // C. QUEUE PROCESSOR: Pick up existing pending tasks
+    const { data: pendingTasks, error: pendingError } = await supabase
+        .from('agent_tasks')
+        .select('id')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true })
+        .limit(5);
+
+    if (pendingError) {
+        console.error("🤖 Queue Processor Error:", pendingError);
+    } else {
+        console.log(`🤖 Queue Processor: Found ${pendingTasks?.length || 0} pending tasks.`);
+    }
+
+    if (pendingTasks && pendingTasks.length > 0) {
+        console.log(`🤖 Queue Processor: Dispatching ${pendingTasks.length} pending tasks...`);
+        for (const task of pendingTasks) {
+            console.log(`🤖 Dispatching task: ${task.id}`);
+            createPullRequestAction(task.id).catch(e => console.error(`❌ Dispatch failed for task ${task.id}:`, e));
+        }
     }
 
     try {
