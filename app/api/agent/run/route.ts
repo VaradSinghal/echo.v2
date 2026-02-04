@@ -15,19 +15,46 @@ export async function POST(request: Request) {
     const supabase = createServiceRoleClient();
     const gemini = new GeminiService();
 
-    // 0. Cleanup Stale Tasks (Older than 30 minutes without heartbeat)
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    // 0. Recovery Phase: Cleanup and Resume Stale Tasks
+    // - Cleanup: Older than 30 minutes (Permanent Fail)
+    // - Recovery: Older than 5 minutes (Reset to Pending for Retry)
+
+    const now = new Date();
+    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
+
+    // Permanent Fail for very old tasks
     const { error: cleanupError } = await supabase
         .from('agent_tasks')
         .update({
             status: 'failed',
-            current_step: 'Failed: Agent process timed out (no heartbeat)',
-            logs: [{ timestamp: new Date().toISOString(), message: "Marked as failed due to inactivity (30m timeout). If this was a valid long-running process, increase the timeout.", status: "failed" }]
+            current_step: 'Failed: Agent process timed out (no heartbeat for 30m)',
+            logs: [{ timestamp: new Date().toISOString(), message: "Marked as failed due to extreme inactivity (30m).", status: "failed" }]
         })
         .eq('status', 'processing')
         .lt('last_heartbeat', thirtyMinutesAgo);
 
     if (cleanupError) console.error("🤖 Cleanup Error:", cleanupError);
+
+    // Recovery for recently stalled tasks (Older than 5m)
+    const { data: stalledTasks, error: stalledError } = await supabase
+        .from('agent_tasks')
+        .update({
+            status: 'pending',
+            current_step: 'Recovered: Resuming from stall',
+            last_heartbeat: new Date().toISOString()
+        })
+        .eq('status', 'processing')
+        .lt('last_heartbeat', fiveMinutesAgo)
+        .select('id');
+
+    if (stalledError) console.error("🤖 Recovery Error:", stalledError);
+    if (stalledTasks && stalledTasks.length > 0) {
+        console.log(`🤖 Recovered ${stalledTasks.length} stalled tasks. Re-triggering...`);
+        stalledTasks.forEach(task => {
+            createPullRequestAction(task.id).catch(e => console.error(`❌ Restart failed for task ${task.id}:`, e));
+        });
+    }
 
     try {
         // 1. Get Active Monitored Posts with engagement metrics

@@ -96,6 +96,9 @@ export async function createPullRequestAction(taskId: string) {
             await addLog(`Fetching content for ${filePath}...`, "processing", `Patching ${filePath}`);
 
             try {
+                // Heartbeat before API call
+                await addLog(`Initiating content fetch for ${filePath}`, "processing", `Patching ${filePath}`);
+
                 const currentCode = await github.getFileContent(targetUserId, repo, filePath);
                 await addLog(`Current content for ${filePath} loaded (${currentCode.length} chars).`, "processing", `Patching ${filePath}`);
 
@@ -105,6 +108,8 @@ export async function createPullRequestAction(taskId: string) {
                     : "";
 
                 await addLog(`Requesting patch from Gemini for ${filePath}...`, "processing", `Patching ${filePath}`);
+
+                // Set a timeout or at least log heartbeat right before the heaviest call
                 const aiResult = await gemini.generateCode(feedback, filePath, currentCode, context);
 
                 if (aiResult) {
@@ -115,10 +120,10 @@ export async function createPullRequestAction(taskId: string) {
                         explanation: aiResult.explanation
                     });
                 } else {
-                    await addLog(`Warning: Gemini failed to generate a patch for ${filePath}.`, "processing", `Patching ${filePath}`);
+                    await addLog(`Warning: Gemini failed to generate a patch for ${filePath}. Skipping.`, "processing", `Patching ${filePath}`);
                 }
             } catch (fileErr: any) {
-                await addLog(`Warning: Skipping ${filePath} due to error: ${fileErr.message}`, "processing", `Patching ${filePath}`);
+                await addLog(`Warning: Skipping ${filePath} due to unexpected error: ${fileErr.message}`, "processing", `Patching ${filePath}`);
             }
         }
 
