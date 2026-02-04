@@ -1,9 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { PRReviewPanel } from "@/components/agent/pr-review-panel"
 import { WorkHistoryPanel } from "@/components/agent/work-history-panel"
 import { AnalyticsDashboard } from "@/components/agent/analytics-dashboard"
+import { AgentHistoryTimeline } from "@/components/agent/agent-history-timeline"
 import { createClient } from "@/utils/supabase/client"
 import { Play, Loader2, Bot } from "lucide-react"
 
@@ -119,10 +119,12 @@ export default function AgentDashboard() {
                     <div className="space-y-16 md:space-y-24">
                         <AnalyticsDashboard selectedRepo={selectedRepo} selectedPostId={selectedPostId} />
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
-                            <PRReviewPanel selectedRepo={selectedRepo} selectedPostId={selectedPostId} />
+                        <div className="grid grid-cols-1 gap-8 md:gap-12">
                             <WorkHistoryPanel selectedRepo={selectedRepo} selectedPostId={selectedPostId} />
                         </div>
+
+                        {/* Agent History Timeline */}
+                        <AgentHistoryTimeline selectedRepo={selectedRepo} selectedPostId={selectedPostId} />
                     </div>
                 ) : (
                     <div className="border-2 border-black/10 p-24 text-center bg-white/50 backdrop-blur-sm">

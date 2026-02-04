@@ -26,6 +26,7 @@ interface PostProps {
         is_monitored: boolean
         user_id: string
         image_url: string | null
+        linked_repos?: string[] // Array of repo IDs from monitored_posts
     }
     currentUserId: string
 }
@@ -82,16 +83,20 @@ export function PostCard({ post, currentUserId }: PostProps) {
                         </p>
                     </div>
                 </div>
-                {post.repo_link && (
-                    <a
-                        href={post.repo_link}
-                        target="_blank"
-                        className="group flex items-center gap-2 border border-black bg-white px-2 py-1 text-[10px] font-black uppercase tracking-widest text-black hover:bg-black hover:text-white transition-all"
-                    >
-                        <Github className="h-3 w-3" />
-                        Repository
-                    </a>
-                )}
+                {/* Display all linked repos */}
+                <div className="flex flex-wrap gap-1">
+                    {(post.linked_repos && post.linked_repos.length > 0 ? post.linked_repos : (post.repo_link ? [post.repo_link.replace('https://github.com/', '')] : [])).map((repoId, idx) => (
+                        <a
+                            key={idx}
+                            href={repoId.startsWith('http') ? repoId : `https://github.com/${repoId}`}
+                            target="_blank"
+                            className="group flex items-center gap-1 border border-black bg-white px-2 py-1 text-[10px] font-black uppercase tracking-widest text-black hover:bg-black hover:text-white transition-all"
+                        >
+                            <Github className="h-3 w-3" />
+                            {repoId.split('/').pop()}
+                        </a>
+                    ))}
+                </div>
             </div>
 
             {post.image_url && (

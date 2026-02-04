@@ -15,7 +15,7 @@ export function CreatePost() {
     const [title, setTitle] = React.useState("")
     const [content, setContent] = React.useState("")
     const [repos, setRepos] = React.useState<Repo[]>([])
-    const [selectedRepo, setSelectedRepo] = React.useState<string>("")
+    const [selectedRepos, setSelectedRepos] = React.useState<string[]>([])
     const [isLoading, setIsLoading] = React.useState(false)
     const [error, setError] = React.useState<string | null>(null)
     const [imageFile, setImageFile] = React.useState<File | null>(null)
@@ -91,21 +91,23 @@ export function CreatePost() {
                 imageUrl = publicUrl
             }
 
-            // 2. Create the post
+            // 2. Create the post (with first repo as primary for backward compatibility)
             const { data: post, error: insertError } = await supabase.from('posts').insert({
                 user_id: user.id,
                 title,
                 content,
-                repo_link: selectedRepo || null,
+                repo_link: selectedRepos[0] || null,
                 image_url: imageUrl,
             }).select().single()
 
             if (!insertError && post) {
-                // 3. If a repo is attached, automatically enable agent monitoring
-                if (selectedRepo) {
+                // 3. If repos are attached, enable agent monitoring for ALL of them
+                if (selectedRepos.length > 0) {
                     try {
                         const { toggleMonitoringAction } = await import("@/app/actions/agent")
-                        await toggleMonitoringAction(post.id, selectedRepo)
+                        for (const repoUrl of selectedRepos) {
+                            await toggleMonitoringAction(post.id, repoUrl)
+                        }
                     } catch (monitorErr) {
                         console.error("Failed to auto-enable monitoring:", monitorErr)
                     }
@@ -113,7 +115,7 @@ export function CreatePost() {
 
                 setTitle("")
                 setContent("")
-                setSelectedRepo("")
+                setSelectedRepos([])
                 removeImage()
                 router.refresh()
             } else {
@@ -172,16 +174,42 @@ export function CreatePost() {
                     </div>
                 )}
 
+                {/* Selected Repos Chips */}
+                {selectedRepos.length > 0 && (
+                    <div className="flex flex-wrap gap-2 p-2 border-2 border-black bg-neutral-50">
+                        {selectedRepos.map(repoUrl => {
+                            const repo = repos.find(r => r.html_url === repoUrl)
+                            return (
+                                <div key={repoUrl} className="flex items-center gap-1 bg-black text-white px-2 py-1 text-[10px] font-black uppercase tracking-tight">
+                                    <Github className="w-3 h-3" />
+                                    {repo?.full_name.split('/').pop() || 'REPO'}
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedRepos(prev => prev.filter(r => r !== repoUrl))}
+                                        className="ml-1 hover:text-red-400 transition-colors"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            )
+                        })}
+                    </div>
+                )}
+
                 <div className="flex gap-2">
                     <div className="flex-1">
                         <select
                             className="w-full border-2 border-black bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-tight focus:outline-none focus:bg-neutral-50 appearance-none rounded-none h-full"
-                            value={selectedRepo}
-                            onChange={(e) => setSelectedRepo(e.target.value)}
+                            value=""
+                            onChange={(e) => {
+                                if (e.target.value && !selectedRepos.includes(e.target.value)) {
+                                    setSelectedRepos(prev => [...prev, e.target.value])
+                                }
+                            }}
                             disabled={isLoading}
                         >
                             <option value="">ATTACH REPOSITORY (OPTIONAL)</option>
-                            {repos.map(repo => (
+                            {repos.filter(repo => !selectedRepos.includes(repo.html_url)).map(repo => (
                                 <option key={repo.id} value={repo.html_url}>
                                     {repo.full_name.toUpperCase()}
                                 </option>

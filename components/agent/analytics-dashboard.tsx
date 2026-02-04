@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { createClient } from "@/utils/supabase/client"
-import { MessageSquare, GitPullRequest, AlertCircle, Loader2, CheckCircle, Zap, Terminal } from "lucide-react"
+import { MessageSquare, GitPullRequest, AlertCircle, Loader2, CheckCircle, Zap, Terminal, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ExecutionTrace } from "./execution-trace"
+import { CodeDiffPreview } from "./code-diff-preview"
 
 export function AnalyticsDashboard({ selectedRepo, selectedPostId }: { selectedRepo: string, selectedPostId?: string }) {
     const [stats, setStats] = React.useState<any>(null)
@@ -151,7 +152,7 @@ export function AnalyticsDashboard({ selectedRepo, selectedPostId }: { selectedR
         } else if (currentTask.status === 'processing' || currentTask.status === 'pending') {
             if (currentTask.current_step?.includes('Synthesizing') || currentTask.current_step?.includes('Analyzing') || currentTask.current_step?.includes('Planning')) {
                 stage = "coding"
-            } else if (currentTask.current_step?.includes('Dispatching')) {
+            } else if (currentTask.current_step?.includes('Dispatching') || currentTask.current_step?.includes('Creating PR')) {
                 stage = "pr_dispatch"
             }
         } else if (currentTask.status === 'completed' && (currentTask.current_step?.includes('PR Link') || currentTask.current_step?.includes('PR created'))) {
@@ -260,6 +261,16 @@ export function AnalyticsDashboard({ selectedRepo, selectedPostId }: { selectedR
                             logs={currentTask.logs || []}
                             status={currentTask.status}
                             currentStep={currentTask.current_step}
+                        />
+                    </div>
+                )}
+
+                {/* Code Preview for Completed Tasks */}
+                {stage === 'pr_dispatch' && currentTask && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 mt-8">
+                        <CodeDiffPreview
+                            taskId={currentTask.id}
+                            prUrl={currentTask.current_step?.replace('PR Link: ', '')}
                         />
                     </div>
                 )}
