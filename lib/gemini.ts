@@ -169,10 +169,27 @@ export class GeminiService {
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-            const prompt = `Update ${filePath} for feedback: "${feedback}". 
-            ${context ? `Background Context about repo: ${context}` : ''}
-            Current code in ${filePath}:\n${currentCode}\n
-            Return ONLY JSON with {new_code: string, explanation: string, confidence_score: number}.`;
+            const prompt = `Task: Update the following file based on user feedback.
+            File Path: ${filePath}
+            Feedback: "${feedback}"
+            ${context ? `Project Context: ${context}` : ''}
+
+            Current file content:
+            \`\`\`
+            ${currentCode}
+            \`\`\`
+
+            Instructions:
+            1. Provide the FULL updated code for the file.
+            2. If the request is a simple greeting change or documentation update, ensure it's phrased professionally.
+            3. If the current code already addresses the feedback or no logical change is possible, still return the code but set confidence_score accordingly.
+            4. Return ONLY a valid JSON object with these keys:
+               {
+                 "new_code": "string (the complete source code)",
+                 "explanation": "string (briefly explain what you changed)",
+                 "confidence_score": "number (0-1)"
+               }
+            Do not include any other text or markdown outside the JSON.`;
 
             // Add 90s timeout for code generation (longer due to size)
             const result = await Promise.race([

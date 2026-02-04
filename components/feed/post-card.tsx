@@ -36,6 +36,7 @@ export function PostCard({ post, currentUserId }: PostProps) {
     const [isToggling, setIsToggling] = React.useState(false)
     const [isDeleting, setIsDeleting] = React.useState(false)
     const [confirmDelete, setConfirmDelete] = React.useState(false)
+    const [imageError, setImageError] = React.useState(false)
 
     const handleToggleMonitoring = async () => {
         setIsToggling(true)
@@ -67,9 +68,12 @@ export function PostCard({ post, currentUserId }: PostProps) {
             <div className="border-b-2 border-black bg-neutral-50 px-6 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <img
-                        src={post.profiles.avatar_url}
-                        className="size-8 border border-black grayscale"
+                        src={post.profiles.avatar_url || `https://api.dicebear.com/7.x/identicon/svg?seed=${post.profiles.username}`}
+                        className="size-8 border border-black"
                         alt={post.profiles.username}
+                        onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${post.profiles.username}`
+                        }}
                     />
                     <div>
                         <p className="text-xs font-black uppercase tracking-tight text-black">{post.profiles.username}</p>
@@ -91,12 +95,22 @@ export function PostCard({ post, currentUserId }: PostProps) {
             </div>
 
             {post.image_url && (
-                <div className="border-b-2 border-black overflow-hidden bg-neutral-100 aspect-video flex items-center justify-center">
-                    <img
-                        src={post.image_url}
-                        alt={post.title}
-                        className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
-                    />
+                <div className="border-b-2 border-black overflow-hidden bg-neutral-100 aspect-video flex items-center justify-center relative group">
+                    {!imageError ? (
+                        <img
+                            src={post.image_url}
+                            alt={post.title}
+                            className="w-full h-full object-cover transition-all duration-500"
+                            onError={() => setImageError(true)}
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center gap-2 text-black/20">
+                            <Bot className="size-8" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-center px-4">
+                                Connection Interrupted: Image Unavailable
+                            </span>
+                        </div>
+                    )}
                 </div>
             )}
 

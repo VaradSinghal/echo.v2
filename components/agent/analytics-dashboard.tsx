@@ -144,15 +144,17 @@ export function AnalyticsDashboard({ selectedRepo, selectedPostId }: { selectedR
     )
 
     const currentTask = tasks[0]
-    let stage = "monitoring"
+    let stage: "monitoring" | "coding" | "pr_dispatch" | "failed" = "monitoring"
     if (currentTask) {
-        if (currentTask.status === 'processing' || currentTask.status === 'pending') {
-            if (currentTask.current_step?.includes('Synthesizing') || currentTask.current_step?.includes('Analyzing')) {
+        if (currentTask.status === 'failed') {
+            stage = "failed"
+        } else if (currentTask.status === 'processing' || currentTask.status === 'pending') {
+            if (currentTask.current_step?.includes('Synthesizing') || currentTask.current_step?.includes('Analyzing') || currentTask.current_step?.includes('Planning')) {
                 stage = "coding"
             } else if (currentTask.current_step?.includes('Dispatching')) {
                 stage = "pr_dispatch"
             }
-        } else if (currentTask.status === 'completed' && currentTask.current_step?.includes('PR Link')) {
+        } else if (currentTask.status === 'completed' && (currentTask.current_step?.includes('PR Link') || currentTask.current_step?.includes('PR created'))) {
             stage = "pr_dispatch"
         }
     }
@@ -162,6 +164,16 @@ export function AnalyticsDashboard({ selectedRepo, selectedPostId }: { selectedR
         { id: "coding", label: "Code Generation", icon: Loader2, description: "Gemini is synthesizing technical solutions" },
         { id: "pr_dispatch", label: "PR Dispatch", icon: CheckCircle, description: "Verifying patches and opening pull requests" }
     ]
+
+    // Add failure stage if active
+    if (stage === 'failed') {
+        stages.push({
+            id: "failed",
+            label: "Execution Failed",
+            icon: AlertCircle,
+            description: currentTask.result?.error || "An unexpected error interrupted the pipeline"
+        })
+    }
 
     const metrics = [
         { label: "Community Signals", value: stats.totalComments, icon: MessageSquare },
@@ -203,7 +215,9 @@ export function AnalyticsDashboard({ selectedRepo, selectedPostId }: { selectedR
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border-2 border-black mb-12">
                     {stages.map((s, i) => {
-                        const isPast = (stage === "coding" && s.id === "monitoring") || (stage === "pr_dispatch" && (s.id === "monitoring" || s.id === "coding"))
+                        const isPast = (stage === "coding" && s.id === "monitoring") ||
+                            (stage === "pr_dispatch" && (s.id === "monitoring" || s.id === "coding")) ||
+                            (stage === "failed" && (s.id === "monitoring" || s.id === "coding"))
                         const isCurrent = stage === s.id
                         const isActive = isCurrent || isPast
 
@@ -212,18 +226,20 @@ export function AnalyticsDashboard({ selectedRepo, selectedPostId }: { selectedR
                                 key={s.id}
                                 className={cn(
                                     "p-6 md:p-8 border-black md:border-r-2 last:border-r-0 border-b-2 md:border-b-0 transition-all duration-500",
-                                    isCurrent ? "bg-black text-white" : isPast ? "bg-neutral-50 text-black/40" : "opacity-30 bg-white"
+                                    isCurrent ? (stage === 'failed' ? "bg-red-600 text-white" : "bg-black text-white") :
+                                        isPast ? "bg-neutral-50 text-black/40" : "opacity-30 bg-white"
                                 )}
                             >
                                 <div className="flex items-center gap-3 mb-4">
-                                    <s.icon className={cn("size-4 md:size-5", isCurrent && (s.id === "coding" || s.id === "monitoring") && "animate-spin")} />
+                                    <s.icon className={cn("size-4 md:size-5", isCurrent && s.id !== "failed" && (s.id === "coding" || s.id === "monitoring") && "animate-spin")} />
                                     <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">
                                         {s.label}
-                                        {isPast && s.id !== "pr_dispatch" && <CheckCircle className="inline ml-2 size-3 text-green-500" />}
+                                        {isPast && s.id !== "pr_dispatch" && stage !== 'failed' && <CheckCircle className="inline ml-2 size-3 text-green-500" />}
+                                        {stage === 'failed' && s.id === 'failed' && <AlertCircle className="inline ml-2 size-3 text-white" />}
                                     </span>
                                 </div>
                                 <p className={cn("text-[9px] md:text-[10px] font-bold uppercase tracking-tight leading-relaxed", isCurrent ? "text-white/60" : "text-black/40")}>
-                                    {s.description}
+                                    {isActive ? s.description : "Awaiting activation..."}
                                 </p>
                                 {isCurrent && (
                                     <div className="mt-6 flex gap-1">
