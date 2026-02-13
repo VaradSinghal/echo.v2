@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, LogOut, User, Activity, Bot, MessageSquare } from "lucide-react";
+import { LayoutDashboard, LogOut, User, Activity, Bot, MessageSquare, Sparkles } from "lucide-react";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 
 export default async function DashboardLayout({
@@ -27,9 +27,9 @@ export default async function DashboardLayout({
 
     const navItems = [
         { href: "/dashboard/feed", label: "Community Feed", icon: <Activity className="h-5 w-5" /> },
-        { href: "/dashboard/reddit", label: "Reddit", icon: <MessageSquare className="h-5 w-5" /> },
-        { href: "/dashboard/product-hunt", label: "Product Hunt", icon: <span className="h-5 w-5 flex items-center justify-center font-black text-xs border-2 border-black bg-white text-black rounded-full">P</span> },
+        { href: "/dashboard/insights", label: "AI Insights", icon: <Sparkles className="h-5 w-5" /> },
         { href: "/dashboard/agent", label: "Echo Agent", icon: <Bot className="h-5 w-5" /> },
+        { href: "/dashboard/reddit", label: "Reddit", icon: <MessageSquare className="h-5 w-5" /> },
         { href: "/dashboard/subscription", label: "Subscription", icon: <span className="h-5 w-5 flex items-center justify-center font-bold text-xs border-2 border-black rounded-full bg-yellow-400">$</span> },
         { href: "/dashboard/profile", label: "Profile", icon: <User className="h-5 w-5" /> },
     ];

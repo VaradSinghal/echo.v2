@@ -4,6 +4,7 @@ import * as React from "react"
 import { WorkHistoryPanel } from "@/components/agent/work-history-panel"
 import { AnalyticsDashboard } from "@/components/agent/analytics-dashboard"
 import { AgentHistoryTimeline } from "@/components/agent/agent-history-timeline"
+import { LogTerminal } from "@/components/agent/log-terminal"
 import { createClient } from "@/utils/supabase/client"
 import { Play, Loader2, Bot } from "lucide-react"
 
@@ -118,6 +119,10 @@ export default function AgentDashboard() {
                 {selectedRepo ? (
                     <div className="space-y-16 md:space-y-24">
                         <AnalyticsDashboard selectedRepo={selectedRepo} selectedPostId={selectedPostId} />
+
+                        <div className="mt-8">
+                            <LogTerminal />
+                        </div>
 
                         <div className="grid grid-cols-1 gap-8 md:gap-12">
                             <WorkHistoryPanel selectedRepo={selectedRepo} selectedPostId={selectedPostId} />

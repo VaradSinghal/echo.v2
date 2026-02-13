@@ -306,3 +306,72 @@ export async function triggerAgentRunAction() {
         return { error: e.message };
     }
 }
+
+export async function generateReportAction(commentIds?: string[]) {
+    const supabase = createClient();
+    const localUrl = process.env.LOCAL_EMBEDDING_URL || "http://localhost:8000/embed";
+    const baseUrl = localUrl.replace("/embed", "");
+
+    try {
+        let targetIds = commentIds;
+
+        if (!targetIds || targetIds.length === 0) {
+            // Fetch recent comments (last 24 hours) if no IDs provided
+            const { data: comments } = await supabase
+                .from('comments')
+                .select('id')
+                .order('created_at', { ascending: false })
+                .limit(50);
+
+            targetIds = comments?.map(c => c.id) || [];
+        }
+
+        if (targetIds.length === 0) return { report: "No comments to analyze." };
+
+        const response = await fetch(`${baseUrl}/generate_report`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ comment_ids: targetIds })
+        });
+
+        if (!response.ok) throw new Error("Local LLM service failed");
+        const data = await response.json();
+        return { report: data.report };
+
+    } catch (e: any) {
+        console.error("Report generation error:", e);
+        return { error: "Failed to generate report. Ensure Local LLM is active." };
+    }
+}
+
+export async function getTopCommentAction() {
+    const supabase = createClient();
+    const localUrl = process.env.LOCAL_EMBEDDING_URL || "http://localhost:8000/embed";
+    const baseUrl = localUrl.replace("/embed", "");
+
+    try {
+        // Fetch recent comments to analyze
+        const { data: comments } = await supabase
+            .from('comments')
+            .select('id')
+            .order('created_at', { ascending: false })
+            .limit(100);
+
+        const targetIds = comments?.map(c => c.id) || [];
+        if (targetIds.length === 0) return { top_comment: null };
+
+        const response = await fetch(`${baseUrl}/top_comment`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ comment_ids: targetIds })
+        });
+
+        if (!response.ok) throw new Error("Local LLM service failed");
+        const data = await response.json();
+        return { top_comment: data.top_comment };
+
+    } catch (e: any) {
+        console.error("Top comment error:", e);
+        return { error: "Failed to fetch top comment." };
+    }
+}
