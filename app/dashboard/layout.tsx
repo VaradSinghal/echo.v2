@@ -30,6 +30,7 @@ export default async function DashboardLayout({
         { href: "/dashboard/reddit", label: "Reddit", icon: <MessageSquare className="h-5 w-5" /> },
         { href: "/dashboard/product-hunt", label: "Product Hunt", icon: <span className="h-5 w-5 flex items-center justify-center font-black text-xs border-2 border-black bg-white text-black rounded-full">P</span> },
         { href: "/dashboard/agent", label: "Echo Agent", icon: <Bot className="h-5 w-5" /> },
+        { href: "/dashboard/subscription", label: "Subscription", icon: <span className="h-5 w-5 flex items-center justify-center font-bold text-xs border-2 border-black rounded-full bg-yellow-400">$</span> },
         { href: "/dashboard/profile", label: "Profile", icon: <User className="h-5 w-5" /> },
     ];
 

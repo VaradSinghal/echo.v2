@@ -104,6 +104,29 @@ export class GeminiService {
     }
 
     async generateEmbedding(text: string): Promise<number[] | null> {
+        // Try local embedding service first (Recommended)
+        const localUrl = process.env.LOCAL_EMBEDDING_URL;
+        if (localUrl) {
+            try {
+                const response = await fetch(localUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.embedding;
+                }
+                console.warn("⚠️ Local embedding service failed, falling back to Gemini (Cloud)...");
+            } catch (error) {
+                console.warn("⚠️ Local embedding service unreachable, falling back to Gemini (Cloud):", error);
+            }
+        } else {
+            console.log("ℹ️ LOCAL_EMBEDDING_URL not set. Using Gemini (Cloud) for embeddings.");
+        }
+
+        // Fallback to Gemini Cloud
         const apiKey = manager.getNextKey();
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
@@ -112,7 +135,7 @@ export class GeminiService {
             return result.embedding.values;
         } catch (error: any) {
             if (error?.status === 429) manager.markRateLimited(apiKey);
-            console.error("Gemini embedding failed:", error);
+            console.error("❌ Gemini embedding failed:", error);
             return null;
         }
     }

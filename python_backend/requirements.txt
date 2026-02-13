@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sentence-transformers
+torch
+pydantic
+supabase
+python-dotenv
+requests

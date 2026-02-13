@@ -169,15 +169,10 @@ export async function POST(request: Request) {
 
                     if (!analysisError && analysisData) {
                         console.log(`✅ Saved Analysis to DB for comment: ${comment.id}`);
-                        // Generate Embedding
-                        const embedding = await gemini.generateEmbedding(comment.content);
-                        if (embedding) {
-                            await supabase.from('comment_embeddings').insert({
-                                comment_id: comment.id,
-                                embedding: embedding
-                            });
-                            console.log(`✅ Saved Embedding for comment: ${comment.id}`);
-                        }
+
+                        // NOTE: Embedding generation for comments is now handled AUTONOMOUSLY 
+                        // by the Python Realtime Worker in the backend. 
+                        // We no longer perform manual embedding here to avoid Gemini Cloud costs.
 
                         // 3. Conditional: Trigger Code Generation for High Impact Feedback
                         if (analysis.category === 'feature_request' || analysis.category === 'bug') {

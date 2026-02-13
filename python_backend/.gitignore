@@ -1,0 +1,32 @@
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables
+.env
+
+# FastAPI / Uvicorn
+logs/
+*.log
+
+# Byte-compiled / optimized / DLL files
+*.so
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Local model cache (if any large models are downloaded locally)
+models/
+.cache/
+
+# VS Code / IDE settings
+.vscode/
+.idea/
