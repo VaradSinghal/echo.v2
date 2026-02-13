@@ -67,6 +67,12 @@ class GeminiMultiAccountManager {
         if (keyInfo) {
             keyInfo.isRateLimited = true;
             console.warn(`Gemini key rate limited: ${key.substring(0, 8)}...`);
+
+            // Auto-reset after 60 seconds
+            setTimeout(() => {
+                keyInfo.isRateLimited = false;
+                console.log(`Gemini key rate limit reset: ${key.substring(0, 8)}...`);
+            }, 60000);
         }
     }
 }
@@ -79,7 +85,7 @@ export class GeminiService {
         const apiKey = manager.getNextKey();
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
             const prompt = `Analyze this user feedback. Return ONLY valid JSON and nothing else.
             JSON structure: { "sentiment_score": number (-1 to 1), "category": "feature_request" | "bug" | "question" | "feedback", "keywords": string[] }
             Comment: "${comment}"`;
@@ -145,7 +151,7 @@ export class GeminiService {
         const apiKey = manager.getNextKey();
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
             const prompt = `Extract top 5 themes from: ${comments.join(", ")}. Return ONLY a JSON array of strings.`;
 
             // Add 30s timeout
@@ -159,6 +165,7 @@ export class GeminiService {
             if (!jsonMatch) throw new Error("No JSON array found");
             return JSON.parse(jsonMatch[0]);
         } catch (error: any) {
+            if (error?.status === 429) manager.markRateLimited(apiKey);
             console.error("Gemini topics failed:", error.message);
             return [];
         }
@@ -168,7 +175,7 @@ export class GeminiService {
         const apiKey = manager.getNextKey();
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
             const prompt = `Based on this feedback: "${feedback}", and this repository structure:\n${fileTree.join("\n")}\n\nDetermine which files need to be modified. Return ONLY a JSON array of file paths. Example: ["README.md", "src/index.js"]`;
 
             // Add 45s timeout for planning
@@ -182,6 +189,7 @@ export class GeminiService {
             if (!jsonMatch) return ["README.md"]; // Fallback
             return JSON.parse(jsonMatch[0]);
         } catch (error: any) {
+            if (error?.status === 429) manager.markRateLimited(apiKey);
             console.error("Gemini planning failed:", error.message);
             return ["README.md"];
         }
@@ -191,7 +199,7 @@ export class GeminiService {
         const apiKey = manager.getNextKey();
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
             const prompt = `Task: Update the following file based on user feedback.
             File Path: ${filePath}
             Feedback: "${feedback}"
@@ -225,6 +233,7 @@ export class GeminiService {
             if (!jsonMatch) throw new Error("No JSON found in response");
             return JSON.parse(jsonMatch[0]);
         } catch (error: any) {
+            if (error?.status === 429) manager.markRateLimited(apiKey);
             console.error("Gemini code gen failed:", error.message);
             return null;
         }

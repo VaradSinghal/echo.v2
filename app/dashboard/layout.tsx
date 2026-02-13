@@ -30,7 +30,6 @@ export default async function DashboardLayout({
         { href: "/dashboard/insights", label: "AI Insights", icon: <Sparkles className="h-5 w-5" /> },
         { href: "/dashboard/agent", label: "Echo Agent", icon: <Bot className="h-5 w-5" /> },
         { href: "/dashboard/reddit", label: "Reddit", icon: <MessageSquare className="h-5 w-5" /> },
-        { href: "/dashboard/subscription", label: "Subscription", icon: <span className="h-5 w-5 flex items-center justify-center font-bold text-xs border-2 border-black rounded-full bg-yellow-400">$</span> },
         { href: "/dashboard/profile", label: "Profile", icon: <User className="h-5 w-5" /> },
     ];
 
@@ -51,7 +50,15 @@ export default async function DashboardLayout({
                             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-black">Signal Portal</h2>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-6">
+                        <Link
+                            href="/dashboard/subscription"
+                            className="flex items-center gap-2 bg-indigo-600 text-white border-2 border-black px-4 py-2 shadow-brutalist transition-all hover:bg-black hover:text-white active:translate-x-1 active:translate-y-1 active:shadow-none"
+                        >
+                            <Sparkles className="size-4" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Upgrade to Pro</span>
+                        </Link>
+
                         <div className="flex items-center gap-3 border-2 border-black bg-neutral-50 px-3 py-1.5">
                             <div className="size-2 rounded-full bg-green-500 animate-pulse" />
                             <span className="text-[10px] font-bold uppercase tracking-tight text-black">{session.user.email}</span>

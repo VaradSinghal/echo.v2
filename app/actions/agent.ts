@@ -307,26 +307,25 @@ export async function triggerAgentRunAction() {
     }
 }
 
-export async function generateReportAction(commentIds?: string[]) {
+export async function generateReportAction(postId?: string) {
     const supabase = createClient();
     const localUrl = process.env.LOCAL_EMBEDDING_URL || "http://localhost:8000/embed";
     const baseUrl = localUrl.replace("/embed", "");
 
     try {
-        let targetIds = commentIds;
+        let query = supabase
+            .from('comments')
+            .select('id')
+            .order('created_at', { ascending: false });
 
-        if (!targetIds || targetIds.length === 0) {
-            // Fetch recent comments (last 24 hours) if no IDs provided
-            const { data: comments } = await supabase
-                .from('comments')
-                .select('id')
-                .order('created_at', { ascending: false })
-                .limit(50);
-
-            targetIds = comments?.map(c => c.id) || [];
+        if (postId) {
+            query = query.eq('post_id', postId);
         }
 
-        if (targetIds.length === 0) return { report: "No comments to analyze." };
+        const { data: comments } = await query.limit(100);
+        const targetIds = comments?.map(c => c.id) || [];
+
+        if (targetIds.length === 0) return { report: "No comments found for the selected signal." };
 
         const response = await fetch(`${baseUrl}/generate_report`, {
             method: "POST",
@@ -344,20 +343,24 @@ export async function generateReportAction(commentIds?: string[]) {
     }
 }
 
-export async function getTopCommentAction() {
+export async function getTopCommentAction(postId?: string) {
     const supabase = createClient();
     const localUrl = process.env.LOCAL_EMBEDDING_URL || "http://localhost:8000/embed";
     const baseUrl = localUrl.replace("/embed", "");
 
     try {
-        // Fetch recent comments to analyze
-        const { data: comments } = await supabase
+        let query = supabase
             .from('comments')
             .select('id')
-            .order('created_at', { ascending: false })
-            .limit(100);
+            .order('created_at', { ascending: false });
 
+        if (postId) {
+            query = query.eq('post_id', postId);
+        }
+
+        const { data: comments } = await query.limit(100);
         const targetIds = comments?.map(c => c.id) || [];
+
         if (targetIds.length === 0) return { top_comment: null };
 
         const response = await fetch(`${baseUrl}/top_comment`, {
@@ -373,5 +376,40 @@ export async function getTopCommentAction() {
     } catch (e: any) {
         console.error("Top comment error:", e);
         return { error: "Failed to fetch top comment." };
+    }
+}
+
+export async function getMonitoredPostsAction() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Unauthorized" };
+
+    try {
+        const { data, error } = await supabase
+            .from('monitored_posts')
+            .select(`
+                id,
+                post_id,
+                repo_id,
+                posts!inner (
+                    id,
+                    content,
+                    user_id
+                )
+            `)
+            .eq('is_active', true)
+            .eq('posts.user_id', user.id);
+
+        if (error) throw error;
+
+        const posts = (data || []).map((m: any) => ({
+            id: m.post_id,
+            title: m.posts?.content?.substring(0, 50) + "..." || m.repo_id
+        }));
+
+        return { posts };
+    } catch (e: any) {
+        console.error("Error fetching monitored posts:", e);
+        return { error: e.message };
     }
 }

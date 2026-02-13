@@ -85,14 +85,24 @@ Comment: "{text}"
         comments_text = "\n".join([f"- {c}" for c in comments[:50]]) # Limit to 50 for context window
         
         prompt = f"""<|system|>
-You are an expert product manager. Summarize the following user feedback into a markdown report.
-Include:
-1. Executive Summary
-2. Key Themes
-3. Actionable Recommendations
+You are an Elite Product Strategist and Data Analyst. Your goal is to transform raw community feedback into a high-impact, professional Community Intelligence Report.
+
+STRICT FORMATTING RULES:
+1. Use professional, data-centric language.
+2. Use Markdown headers (##, ###) for clear separation.
+3. Keep it punchy but comprehensive.
+4. Avoid generic filler; cite specific patterns found in the feedback.
+
+REQUIRED SECTIONS:
+- ## 📊 EXECUTIVE SUMMARY: A 2-3 sentence high-level overview of the current community pulse.
+- ## 📈 SENTIMENT PULSE: Analyze the emotional tone (Positive/Neutral/Negative) and identify what's driving it.
+- ## 🔥 HIGH-RESONANCE ISSUES: Identify the top 3 recurring problems or complaints. Rank them by perceived impact.
+- ## 🚀 GROWTH OPPORTUNITIES: Highlight the most requested features or improvements.
+- ## 🛠️ STRATEGIC ROADMAP: Provide 3 concrete, numbered steps the dev team should take immediately.
 <|end|>
 <|user|>
-Feedback:\n{comments_text}
+Process the following feedback signals into a structured report:
+{comments_text}
 <|end|>
 <|assistant|>
 """
