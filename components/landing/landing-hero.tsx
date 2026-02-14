@@ -1,6 +1,6 @@
 import React from "react"
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Building2 } from "lucide-react"
 import { signInWithGithub } from "@/lib/actions/auth"
 
 export function LandingHero() {
@@ -23,8 +23,12 @@ export function LandingHero() {
                             <ArrowRight className="h-6 w-6" />
                         </button>
                     </form>
-                    <Link href="#feed" className="btn-outline text-lg md:text-xl px-12 py-5">
-                        VIEW LIVE FEED
+                    <Link
+                        href="/login?type=business"
+                        className="inline-flex items-center justify-center gap-3 bg-[#4285F4] text-white border-2 border-black px-12 py-5 text-lg md:text-xl font-black uppercase tracking-widest hover:bg-[#3367D6] transition-colors shadow-brutalist active:translate-y-1 active:shadow-none"
+                    >
+                        <Building2 className="h-5 w-5" />
+                        FOR BUSINESSES
                     </Link>
                 </div>
             </div>

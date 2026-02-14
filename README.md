@@ -3,7 +3,7 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Database-3EC78D?style=flat-square&logo=supabase)](https://supabase.com/)
-[![Gemini AI](https://img.shields.io/badge/Gemini-AI-blue?style=flat-square&logo=google-gemini)](https://ai.google.dev/)
+[![Local LLM](https://img.shields.io/badge/Local--LLM-Qwen--2.5-orange?style=flat-square&logo=openai)](https://github.com/QwenLM/Qwen2.5)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 
 **Echo Agent** is an autonomous platform that bridges the gap between community sentiment and codebase evolution. It listens to your users where they speak (GitHub, Socials), analyzes their needs using LLMs, and automatically proposes code changes through Pull Requests.
@@ -16,7 +16,7 @@ Echo Agent follows a simple yet powerful pipeline to transform feedback into cod
 
 ```mermaid
 graph TD
-    A["📢 Community Feedback"] --> B["🧠 Gemini Processor"]
+    A["📢 Community Feedback"] --> B["🧠 Local LLM Processor"]
     B --> C["🔍 Vector Search (pgVector)"]
     C --> D{"⚖️ Consensus Engine"}
     D -- "Actionable" --> E["💻 Echo Agent (Coding)"]
@@ -26,9 +26,9 @@ graph TD
 ```
 
 1.  **Listen**: Monitors GitHub discussions, comments, and linked social posts.
-2.  **Analyze**: Uses **Gemini Pro** to classify sentiment, identify bugs/features, and extract technical requirements.
-3.  **Synthesize**: Clusters similar feedback using **pgVector** embeddings to find community consensus.
-4.  **Act**: The AI agent writes code, creates a branch, and opens a PR with a detailed explanation of *why* the change was made.
+2.  **Analyze**: Uses a **Local Qwen 2.5 LLM** to classify sentiment, identify bugs/features, and extract technical requirements.
+3.  **Synthesize**: Clusters similar feedback using **Local Embeddings** (all-MiniLM-L6-v2) to find community consensus.
+4.  **Act**: The AI agent writes code using the Local LLM, creates a branch, and opens a PR with a detailed explanation of *why* the change was made.
 
 ---
 
@@ -38,7 +38,7 @@ graph TD
 -   **📈 Real-time Analytics**: A "Mission Control" dashboard showing sentiment trends and active signals.
 -   **💻 Agent Terminal**: Watch the AI work in real-time through a streaming terminal interface.
 -   **🛡️ Human-in-the-Loop**: No code reaches production without human approval.
--   **🔑 Multi-Key Rotation**: Built-in support for multiple Gemini API keys to bypass rate limits.
+-   **🔒 100% Local Intelligence**: Powered by Qwen 2.5 for privacy and zero cloud LLM costs.
 -   **🌙 Modern Brutalist UI**: Sleek, high-contrast interface designed for power users.
 
 ---
@@ -54,7 +54,7 @@ graph TD
 ### Backend & AI
 - **Database**: Supabase (PostgreSQL)
 - **Vector Search**: pgVector
-- **Intelligence**: Google Gemini (Pro & Text-Embedding)
+- **Intelligence**: Local LLM (Qwen 2.5 Coder 7B)
 - **Rate Limiting**: Upstash Redis
 
 ---
@@ -62,7 +62,7 @@ graph TD
 ## ⚙️ Quick Start
 
 ### 1. Requirements
-Ensure you have Node.js 18+, a Supabase account, and a Google AI Studio (Gemini) API key.
+Ensure you have Node.js 18+, a Supabase account, and the local Python backend running for LLM services.
 
 ### 2. Installation
 ```bash
@@ -78,8 +78,8 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-# Multiple keys separated by commas
-GEMINI_API_KEYS=key1,key2,key3
+# Local LLM Backend (Python)
+LOCAL_EMBEDDING_URL=http://localhost:8000/embed
 
 UPSTASH_REDIS_REST_URL=your_redis_url
 UPSTASH_REDIS_REST_TOKEN=your_redis_token

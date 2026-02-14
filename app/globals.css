@@ -92,4 +92,47 @@
     body {
         @apply bg-background text-foreground font-display antialiased;
     }
+
+    /* 
+       GLOBAL BRUTALIST FIX:
+       In Dark Mode, 'text-foreground' becomes white. However, brutalist cards
+       often have hardcoded 'bg-white' or 'bg-neutral-50'. This forces black text
+       on those surfaces to ensure visibility.
+    */
+
+    /* Light backgrounds must force black text */
+    .bg-white,
+    .bg-neutral-50,
+    .bg-neutral-100,
+    .bg-amber-50,
+    .bg-slate-50,
+    .bg-neutral-100\/50,
+    .bg-neutral-50\/50 {
+        color: black !important;
+    }
+
+    .bg-white *,
+    .bg-neutral-50 *,
+    .bg-neutral-100 *,
+    .bg-amber-50 *,
+    .bg-slate-50 * {
+        /* Only force black if not inside another color-defining container */
+        color: inherit;
+    }
+
+    /* Dark backgrounds should default to white text but allow overrides */
+    .bg-black,
+    .bg-neutral-900,
+    .bg-neutral-950,
+    .bg-\[#121212\],
+    .bg-\[#0A0A0A\] {
+        @apply text-white;
+    }
+
+    /* Terminal and code specific fixes */
+    .terminal-window,
+    .terminal-window * {
+        color: inherit;
+        /* Let the component handle it */
+    }
 }

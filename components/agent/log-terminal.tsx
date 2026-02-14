@@ -24,7 +24,7 @@ export function LogTerminal() {
 
     useEffect(() => {
         fetchLogs();
-        const interval = setInterval(fetchLogs, 2000); // Poll every 2s
+        const interval = setInterval(fetchLogs, 5000); // Poll every 5s (optimized)
         return () => clearInterval(interval);
     }, []);
 
@@ -72,8 +72,8 @@ export function LogTerminal() {
                                     <div key={i} className="flex gap-4">
                                         <span className="text-white/20 select-none hidden sm:inline">{(i + 1).toString().padStart(3, '0')}</span>
                                         <span className={`break-all ${isError ? "text-red-400 font-bold" :
-                                                isWarning ? "text-yellow-400" :
-                                                    isSuccess ? "text-green-400" : "text-white/80"
+                                            isWarning ? "text-yellow-400" :
+                                                isSuccess ? "text-green-400" : "text-white/80"
                                             }`}>
                                             {line}
                                         </span>

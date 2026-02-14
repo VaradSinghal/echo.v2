@@ -5,6 +5,7 @@ export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
     const code = searchParams.get('code')
     const next = searchParams.get('next') ?? '/dashboard/feed'
+    const userType = searchParams.get('user_type') ?? 'developer'
 
     if (code) {
         const supabase = createClient()
@@ -13,6 +14,10 @@ export async function GET(request: Request) {
         if (!error && data.session) {
             const { session } = data
             const { user } = session
+
+            // Determine user_type: GitHub = developer, Google = business
+            const provider = user.app_metadata?.provider
+            const resolvedUserType = provider === 'google' ? 'business' : (userType || 'developer')
 
             // Sync Profile Data
             try {
@@ -23,7 +28,8 @@ export async function GET(request: Request) {
                         email: user.email,
                         username: user.user_metadata.user_name || user.user_metadata.full_name || user.email?.split('@')[0],
                         avatar_url: user.user_metadata.avatar_url,
-                        github_id: user.user_metadata.provider_id,
+                        github_id: provider === 'github' ? user.user_metadata.provider_id : null,
+                        user_type: resolvedUserType,
                         updated_at: new Date().toISOString(),
                     }, { onConflict: 'id' })
 
@@ -34,8 +40,8 @@ export async function GET(request: Request) {
                 console.error('Unexpected error during profile sync:', e)
             }
 
-            // Store GitHub tokens
-            if (session.provider_token) {
+            // Store GitHub tokens (only for developer accounts)
+            if (provider === 'github' && session.provider_token) {
                 const { error: tokenError } = await supabase
                     .from('github_tokens')
                     .upsert({

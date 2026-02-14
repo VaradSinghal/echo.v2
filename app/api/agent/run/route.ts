@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/utils/supabase/service";
-import { GeminiService } from "@/lib/gemini";
 import { checkRateLimit } from "@/lib/redis";
-import { createPullRequestAction } from "@/app/actions/agent";
+import { generateViaCliAction } from "@/app/actions/agent";
 
 export async function POST(request: Request) {
     // Rate Limit check
@@ -13,7 +12,6 @@ export async function POST(request: Request) {
     }
 
     const supabase = createServiceRoleClient();
-    const gemini = new GeminiService();
 
     // 0. Recovery & Maintenance Phase
     const now = new Date();
@@ -65,7 +63,8 @@ export async function POST(request: Request) {
         console.log(`🤖 Queue Processor: Dispatching ${pendingTasks.length} pending tasks...`);
         for (const task of pendingTasks) {
             console.log(`🤖 Dispatching task: ${task.id}`);
-            createPullRequestAction(task.id).catch(e => console.error(`❌ Dispatch failed for task ${task.id}:`, e));
+            // Dispatch via Local Qwen / GH CLI pipeline
+            generateViaCliAction(task.id).catch(e => console.error(`❌ Dispatch failed for task ${task.id}:`, e));
         }
     }
 
@@ -138,88 +137,11 @@ export async function POST(request: Request) {
 
         if (!comments || comments.length === 0) return NextResponse.json({ message: 'No comments found', processed: 0 });
 
-        let processedCount = 0;
-
-        for (const comment of comments) {
-            // Check if already analyzed
-            const { data: existing } = await supabase
-                .from('feedback_analysis')
-                .select('id')
-                .eq('comment_id', comment.id)
-                .single();
-
-            if (existing) continue;
-
-            // Perform Analysis
-            console.log(`🤖 Analyzing comment ID: ${comment.id} -> "${comment.content.substring(0, 30)}..."`);
-            try {
-                const analysis = await gemini.analyzeFeedback(comment.content);
-                if (analysis) {
-                    console.log(`✅ Gemini Analysis Received: Category=${analysis.category}, Sentiment=${analysis.sentiment_score}`);
-                    const { data: analysisData, error: analysisError } = await supabase
-                        .from('feedback_analysis')
-                        .insert({
-                            comment_id: comment.id,
-                            sentiment_score: analysis.sentiment_score,
-                            category: analysis.category,
-                            keywords: analysis.keywords,
-                        })
-                        .select()
-                        .single();
-
-                    if (!analysisError && analysisData) {
-                        console.log(`✅ Saved Analysis to DB for comment: ${comment.id}`);
-
-                        // NOTE: Embedding generation for comments is now handled AUTONOMOUSLY 
-                        // by the Python Realtime Worker in the backend. 
-                        // We no longer perform manual embedding here to avoid Gemini Cloud costs.
-
-                        // 3. Conditional: Trigger Code Generation for High Impact Feedback
-                        if (analysis.category === 'feature_request' || analysis.category === 'bug') {
-                            console.log(`🚀 High Impact Feedback Detected: Creating task for ${analysis.category}`);
-
-                            // Create a pending 'generate_code' task with initial log
-                            const { data: task, error: taskError } = await supabase.from('agent_tasks').insert({
-                                monitored_post_id: monitoredPosts.find(p => p.post_id === comment.post_id)?.id,
-                                task_type: 'generate_code',
-                                status: 'pending',
-                                current_step: 'Queued',
-                                logs: [
-                                    { timestamp: new Date(Date.now() - 3000).toISOString(), message: `High-impact signal detected in community feed.` },
-                                    { timestamp: new Date(Date.now() - 1000).toISOString(), message: `Gemini Analysis: Category identified as [${analysis.category.toUpperCase()}].` },
-                                    { timestamp: new Date().toISOString(), message: `Autonomous engineering task initialized.` }
-                                ],
-                                result: {
-                                    comment_id: comment.id,
-                                    reason: `Automated trigger for ${analysis.category}`
-                                }
-                            }).select().single();
-
-                            if (taskError) {
-                                console.error("❌ Task Creation Error:", taskError);
-                            } else {
-                                console.log(`✅ Task Created successfully: ${task.id}`);
-
-                                // Proactively trigger the automated engineering pipeline
-                                createPullRequestAction(task.id).catch(e => {
-                                    console.error("❌ Autonomous PR dispatch failed:", e);
-                                });
-                            }
-                        }
-
-                        processedCount++;
-                    } else {
-                        console.error("❌ Analysis insertion error:", analysisError);
-                    }
-                } else {
-                    console.warn("⚠️ Analysis returned null for comment:", comment.id);
-                }
-            } catch (e: any) {
-                console.error(`❌ Analysis Error for comment ${comment.id}:`, e.message);
-            }
-        }
-
-        return NextResponse.json({ success: true, processed: processedCount });
+        return NextResponse.json({
+            success: true,
+            message: "Queue processed and engagement checked.",
+            monitored: monitoredPosts.length
+        });
 
     } catch (error) {
         console.error("Agent run error:", error);

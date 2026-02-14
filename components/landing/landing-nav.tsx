@@ -1,7 +1,6 @@
 import React from "react"
 import Link from "next/link"
-import { Github } from "lucide-react"
-import { signInWithGithub } from "@/lib/actions/auth"
+import { Github, Building2 } from "lucide-react"
 
 export function LandingNav() {
     return (
@@ -22,14 +21,24 @@ export function LandingNav() {
                         <Link href="/docs" className="text-sm font-bold tracking-widest uppercase hover:underline underline-offset-4 text-black">Docs</Link>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <form action={signInWithGithub} className="hidden sm:block">
-                            <button type="submit" className="bg-black text-white px-6 py-2 text-xs font-black tracking-widest uppercase flex items-center gap-2 hover:bg-neutral-800 transition-colors">
-                                <Github className="w-4 h-4" />
-                                <span className="hidden lg:inline">Continue with GitHub</span>
-                                <span className="lg:hidden">GitHub</span>
-                            </button>
-                        </form>
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href="/login?type=developer"
+                            className="hidden sm:flex bg-black text-white px-5 py-2 text-xs font-black tracking-widest uppercase items-center gap-2 hover:bg-neutral-800 transition-colors"
+                        >
+                            <Github className="w-4 h-4" />
+                            <span className="hidden lg:inline">Developer Login</span>
+                            <span className="lg:hidden">Dev</span>
+                        </Link>
+
+                        <Link
+                            href="/login?type=business"
+                            className="hidden sm:flex bg-[#4285F4] text-white px-5 py-2 text-xs font-black tracking-widest uppercase items-center gap-2 hover:bg-[#3367D6] transition-colors border-2 border-black"
+                        >
+                            <Building2 className="w-4 h-4" />
+                            <span className="hidden lg:inline">Business Login</span>
+                            <span className="lg:hidden">Biz</span>
+                        </Link>
 
                         {/* Mobile Menu Trigger */}
                         <button className="md:hidden border-2 border-black p-1 hover:bg-black hover:text-white transition-colors">

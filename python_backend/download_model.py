@@ -1,33 +1,33 @@
-from huggingface_hub import hf_hub_download
 import os
-import time
+from huggingface_hub import snapshot_download
 
-model_name = "microsoft/Phi-3-mini-4k-instruct-gguf"
-filename = "Phi-3-mini-4k-instruct-q4.gguf"
-local_dir = "models"
+MODEL_REPO = "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF"
+# Pattern to match the specific quantization requested
+ALLOW_PATTERNS = ["*qwen2.5-coder-7b-instruct-q5_k_m*.gguf"]
+DEST_DIR = os.path.join(os.path.dirname(__file__), "models")
 
-if not os.path.exists(local_dir):
-    os.makedirs(local_dir)
-
-print(f"Downloading {filename} from {model_name}...")
-
-max_retries = 5
-for attempt in range(max_retries):
+def download_model():
+    print(f"🚀 Downloading model from {MODEL_REPO} with pattern {ALLOW_PATTERNS}...")
+    
+    if not os.path.exists(DEST_DIR):
+        os.makedirs(DEST_DIR)
+        
     try:
-        hf_hub_download(
-            repo_id=model_name, 
-            filename=filename, 
-            local_dir=local_dir,
-            resume_download=True,
-            local_files_only=False
+        # snapshot_download returns the directory path
+        path = snapshot_download(
+            repo_id=MODEL_REPO,
+            allow_patterns=ALLOW_PATTERNS,
+            local_dir=DEST_DIR,
+            local_dir_use_symlinks=False
         )
-        print("✅ Download complete!")
-        break
+        print(f"✅ Model downloaded successfully to: {path}")
+        
+        # List files to verify
+        files = os.listdir(DEST_DIR)
+        print(f"📂 Files in models dir: {files}")
+        
     except Exception as e:
-        print(f"❌ Attempt {attempt + 1} failed: {e}")
-        if attempt < max_retries - 1:
-            print("Retrying in 5 seconds...")
-            time.sleep(5)
-        else:
-            print("❌ All retries failed.")
-            raise e
+        print(f"❌ Failed to download model: {e}")
+
+if __name__ == "__main__":
+    download_model()

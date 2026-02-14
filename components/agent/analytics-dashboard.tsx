@@ -162,7 +162,7 @@ export function AnalyticsDashboard({ selectedRepo, selectedPostId }: { selectedR
 
     const stages = [
         { id: "monitoring", label: "Monitoring Thresholds", icon: Zap, description: "Scanning community signals for impact" },
-        { id: "coding", label: "Code Generation", icon: Loader2, description: "Gemini is synthesizing technical solutions" },
+        { id: "coding", label: "Code Generation", icon: Loader2, description: "Local Agent is synthesizing technical solutions" },
         { id: "pr_dispatch", label: "PR Dispatch", icon: CheckCircle, description: "Verifying patches and opening pull requests" }
     ]
 

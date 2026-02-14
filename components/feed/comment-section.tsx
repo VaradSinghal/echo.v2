@@ -110,7 +110,7 @@ export function CommentSection({ postId, currentUserId }: CommentSectionProps) {
                         {replyingTo === comment.id && (
                             <form onSubmit={(e) => handleSubmit(e, comment.id)} className="mt-2 flex gap-2">
                                 <input
-                                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm shadow-black transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm shadow-black transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-black"
                                     placeholder="Write a reply..."
                                     value={newComment}
                                     onChange={(e) => setNewComment(e.target.value)}
@@ -138,7 +138,7 @@ export function CommentSection({ postId, currentUserId }: CommentSectionProps) {
                 </Avatar>
                 <div className="flex-1">
                     <input
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-black"
                         placeholder="Write a comment..."
                         value={!replyingTo ? newComment : ""}
                         onChange={(e) => {

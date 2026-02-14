@@ -143,7 +143,7 @@ export function CreatePost() {
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <input
-                        className="w-full border-2 border-black bg-white px-3 py-2 text-xs font-bold uppercase tracking-tight placeholder:text-black/20 focus:outline-none focus:bg-neutral-50"
+                        className="w-full border-2 border-black bg-white px-3 py-2 text-xs font-bold uppercase tracking-tight placeholder:text-black/20 focus:outline-none focus:bg-neutral-50 text-black"
                         placeholder="OBJECTIVE TITLE..."
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
@@ -153,7 +153,7 @@ export function CreatePost() {
 
                 <div>
                     <textarea
-                        className="w-full min-h-[100px] border-2 border-black bg-white px-3 py-2 text-xs font-medium placeholder:text-black/20 focus:outline-none focus:bg-neutral-50 resize-none"
+                        className="w-full min-h-[100px] border-2 border-black bg-white px-3 py-2 text-xs font-medium placeholder:text-black/20 focus:outline-none focus:bg-neutral-50 resize-none text-black"
                         placeholder="TECHNICAL CONTEXT (MARKDOWN)..."
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
@@ -199,7 +199,7 @@ export function CreatePost() {
                 <div className="flex gap-2">
                     <div className="flex-1">
                         <select
-                            className="w-full border-2 border-black bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-tight focus:outline-none focus:bg-neutral-50 appearance-none rounded-none h-full"
+                            className="w-full border-2 border-black bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-tight focus:outline-none focus:bg-neutral-50 appearance-none rounded-none h-full text-black"
                             value=""
                             onChange={(e) => {
                                 if (e.target.value && !selectedRepos.includes(e.target.value)) {
