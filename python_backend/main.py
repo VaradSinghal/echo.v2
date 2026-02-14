@@ -1,4 +1,5 @@
 import os
+import sys
 import asyncio
 import json
 import traceback
@@ -389,21 +390,34 @@ async def generate_code(req: GenerateRequest):
                     ["git", "checkout", "-b", branch_name],
                     ["git", "add", "."],
                     ["git", "commit", "-m", f"Agent: {req.task[:50]}"],
-                    ["git", "push", "origin", branch_name]
+                    ["git", "push", "-u", "origin", branch_name]
                 ]
                 
                 for cmd in cmds:
                     logger.info(f"Running git command: {' '.join(cmd)}")
-                    res = subprocess.run(cmd, cwd=tmp_dir, capture_output=True, text=True)
+                    # Inject GH_TOKEN/GITHUB_TOKEN for git if provided
+                    git_env = {**os.environ}
+                    if req.github_token:
+                        git_env["GH_TOKEN"] = req.github_token
+                        git_env["GITHUB_TOKEN"] = req.github_token
+                        
+                    res = subprocess.run(cmd, cwd=tmp_dir, capture_output=True, text=True, env=git_env)
                     if res.returncode != 0:
-                        logger.warning(f"⚠️ Git command failed: {' '.join(cmd)} | {res.stderr}")
+                        logger.warning(f"⚠️ Git command failed: {' '.join(cmd)} | Error: {res.stderr}")
+                    else:
+                        logger.info(f"✅ Git command success: {' '.join(cmd)} | Out: {res.stdout[:200]} | Err: {res.stderr[:200]}")
 
-                # 5.3 Create PR using GH CLI
+                # 5.3 Create PR using GH CLI with injected token
                 await add_task_log(req.task_id, f"Opening Pull Request for {repo_name}...", step="Creating PR")
                 logger.info(f"🆕 Creating PR via GitHub CLI for {repo_name}...")
+                
+                # Use provided token for GH CLI
+                gh_env = {**os.environ, "GH_TOKEN": req.github_token, "GITHUB_TOKEN": req.github_token}
+                
+                # We try to detect the default branch or just use 'main' as a safe bet for modern repos
                 pr_create_res = subprocess.run(
-                    ["gh", "pr", "create", "--title", f"Agent: {req.task[:50]}", "--body", f"Automated PR from Echo Agent for task: {req.task}"],
-                    cwd=tmp_dir, capture_output=True, text=True
+                    ["gh", "pr", "create", "--head", branch_name, "--title", f"Agent: {req.task[:50]}", "--body", f"Automated PR from Echo Agent for task: {req.task}"],
+                    cwd=tmp_dir, capture_output=True, text=True, env=gh_env
                 )
                 
                 if pr_create_res.returncode == 0:
@@ -414,16 +428,32 @@ async def generate_code(req: GenerateRequest):
                     # 5.4 Run PR Agent Enhance
                     logger.info("🧠 Running PR Agent /describe...")
                     # Note: We use the local OpenAI endpoint we just added
+                    # Add GH_TOKEN to PR Agent env as well
                     env = {
                         **os.environ, 
+                        **gh_env,
                         "OPENAI_BASE_URL": "http://localhost:8000/v1",
                         "OPENAI_API_KEY": "dummy-key", # Required by lib but unused by local Qwen
-                        "CONFIG.MODEL": "qwen2.5-coder-7b"
+                        "CONFIG.MODEL": "qwen2.5-coder-7b",
+                        "GITHUB.USER_TOKEN": req.github_token # Explicitly set for PR Agent
                     }
-                    subprocess.run(["pr-agent", "describe"], cwd=tmp_dir, env=env)
+                    
+                    # Use sys.executable to ensure we use the same venv
+                    # pr-agent CLI expects: python -m pr_agent.cli --pr_url <url> <command>
+                    pr_agent_cmd = [sys.executable, "-m", "pr_agent.cli", "--pr_url", pr_url, "describe"]
+                    logger.info(f"Running PR Agent command: {' '.join(pr_agent_cmd)}")
+                    
+                    try:
+                        res = subprocess.run(pr_agent_cmd, cwd=tmp_dir, env=env, capture_output=True, text=True)
+                        if res.returncode == 0:
+                            logger.info(f"✅ PR Agent successful: {res.stdout[:200]}")
+                        else:
+                            logger.warning(f"⚠️ PR Agent failed: {res.stderr}")
+                    except Exception as e:
+                        logger.error(f"❌ Failed to run PR Agent: {e}")
                 else:
                     logger.error(f"❌ GH CLI PR Create Failed: {pr_create_res.stderr}")
-                    await add_task_log(req.task_id, "GitHub CLI failed to create PR.", status="failed", step="PR Failed")
+                    await add_task_log(req.task_id, f"GitHub CLI failed: {pr_create_res.stderr}", status="failed", step="PR Failed")
             
             except Exception as pr_err:
                 logger.error(f"❌ PR Pipeline Error: {pr_err}")

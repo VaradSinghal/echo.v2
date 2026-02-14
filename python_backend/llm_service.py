@@ -41,11 +41,11 @@ class LLMService:
         logger.info(f"Loading LLM from {self.model_path}...")
         try:
             from llama_cpp import Llama
-            # n_ctx=8192 for Qwen code tasks
+            # n_ctx=4096 for stability on demo hardware
             self.llm = Llama(
                 model_path=self.model_path,
-                n_ctx=8192,
-                n_gpu_layers=-1, # Offload all to GPU if available
+                n_ctx=4096,
+                n_gpu_layers=32, # Offload some to GPU, keep context safe
                 verbose=False
             )
             logger.info("✅ LLM loaded successfully.")
